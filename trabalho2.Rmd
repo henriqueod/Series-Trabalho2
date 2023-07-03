@@ -1,0 +1,94 @@
+---
+title: "Análise de Séries Temporais - Trabalho 2"
+author: "Davi Guerra Alves - Henrique Oliveira Dumay"
+date: '2023-07-02'
+output: pdf_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+lapply(c('dplyr','lubridate','Mcomp','forecast','tseries','ggplot2','ggpubr'),require,character.only=TRUE)
+# Dados
+data(M3)
+id <- 1686
+
+M3[[id]]$period
+```
+
+
+# Apresentação
+
+A série analisada consiste na série número `r id` pertencente ao banco de dados da competição de previsão M3, disponível no pacote *Mcomp* do software R. A série descreve o número de carregamentos de papale couché, mensalmente, de janeiro de 1983 a janeiro de 1994. 
+
+```{r, fig.align="center",fig.cap='Comportamento da série ao longo do tempo',echo=FALSE}
+M3[[id]] %>% autoplot(xlab="Ano", ylab="n.º de carregamentos")
+```
+
+# Decomposição MSTL
+
+```{r,fig.align="center",fig.cap='Decomposição MSTL', echo = FALSE}
+mstl(M3[[id]]$x, s.window= c(12)) %>% 
+  autoplot(main="Série Original")
+```
+A decomposição MSTL mostra os componentes de tendência, sazonalidade e erro da série estudada. Percebe-se a presença de uma tendência crescente, com múltiplas sazonalidades que apesentam mudança do comportamento ao longo do tempo. É possível observar, graficamente, um alargamento da sazonalidade ao fim da série quando comparando ao início da série. 
+
+A presença do componente de tendência explicita a não-estacionaridade da série original.A função ndiffs() é utilizada para estimar o número de diferenças exigidas para tornar a série estacionária por meio de um teste de raíz unitária, com a hipótese nula de que a série tem raízes estacionárias contra a hipótese alternativa de que a série tem raíz unitária. O teste retorna o menor número de diferenças exigidas para o teste em um nível de significância de 95%. Já a função nsdiffs() utiliza testes de raíz unitária para determinar o número de diferenças sazonais para tornar a série estacionária. 
+
+Com o uso das funções acima, obteve-se o valor para $d = 1$ e $D = 1$.
+
+```{r, echo = FALSE, include = FALSE}
+M3[[id]]$x %>%
+  ndiffs()             # d = 1
+
+M3[[id]]$x %>%
+  diff() %>%
+  nsdiffs()            # D = 1
+```
+
+
+A série diferenciada, portanto, passa a ser:
+
+
+```{r, fig.align="center",fig.cap='Série diferenciada', echo = FALSE}
+serie_dif <- M3[[id]]$x %>% 
+  diff()  
+autoplot(serie_dif, xlab = "Tempo", ylab = "Série diferenciada")
+```
+A estacionariedade da série pode ser testada utilizando o teste Kwiatkowski-Phillips-Schmidt-Shin (KPSS), com a hipótese nula de que a série é estacionária. O teste resulta em um valor de `r kpss.test(serie_dif)[[1]]`, com p-valor de `r kpss.test(serie_dif)[[3]]`, que não nos permite rejeitar a hipótese nula a um nível de significância $\alpha = 0,05$.
+
+```{r, include = FALSE}
+kpss.test(serie_dif)
+```
+Consideramos que a série é, agora, estacionária, observamos os gráficos da função de autocorrelação e da função de autocorrelação parcial em busca de possíveis autocorrelações entre os diferentes atrasos da série
+
+```{r, fig.align="center",fig.cap='Gráficos ACF e PACF', echo = FALSE}
+graf_acf  <- ggAcf(serie_dif, lag.max = 12*5) + ggtitle("") + xlab("")
+graf_pacf <- ggPacf(serie_dif, lag.max = 12*5)+ ggtitle("") + xlab("") 
+ggarrange(graf_acf, graf_pacf, 
+                    ncol = 1, nrow = 2)
+```
+Dos gráficos apresentados, pode-se afirmar que a série diferenciada não apresenta um padrão claro de autocorrelações simples e sazonais que permita inferir diretamente a modelagem. Neste sentido, serão testados valores diferentes para *p*, *P*, *q* e *Q* e os diferentes modelos serão comparados por meio do critério AIC.
+
+```{r}
+auto.arima(M3[[id]]$x)
+```
+```{r}
+melhor_AICc = Inf
+for(P in 0:2) {
+  for(Q in 0:2) {
+    for(p in 0:2) {
+      for(q  in 0:2) {
+    fit = Arima(M3[[id]]$x, order=c(p,1,q), seasonal=c(P,1,Q))
+    if(fit$aicc < melhor_AICc) {
+      melhor_AICc <- fit$aicc
+      cat("p =",p,", q =",q,", P =",P,", Q =",Q,", AICc =", fit$aicc, "\n")
+      
+    }
+    
+      }
+    }
+  }
+}
+```
+
+
