@@ -34,7 +34,9 @@ A decomposição MSTL mostra os componentes de tendência, sazonalidade e erro d
 
 A presença do componente de tendência explicita a não-estacionaridade da série original.A função ndiffs() é utilizada para estimar o número de diferenças exigidas para tornar a série estacionária por meio de um teste de raíz unitária, com a hipótese nula de que a série tem raízes estacionárias contra a hipótese alternativa de que a série tem raíz unitária. O teste retorna o menor número de diferenças exigidas para o teste em um nível de significância de 95%. Já a função nsdiffs() utiliza testes de raíz unitária para determinar o número de diferenças sazonais para tornar a série estacionária. 
 
-Com o uso das funções acima, obteve-se o valor para $d = 1$ e $D = 1$.
+Com o uso das funções acima, obteve-se o valor para $d = 1$ e $D = 1$. Os modelos candidatos terão a forma:
+
+$$SARIMA(p, 1, q) \times (P, 1, Q)_{12}$$
 
 ```{r, echo = FALSE, include = FALSE}
 M3[[id]]$x %>%
@@ -54,6 +56,7 @@ serie_dif <- M3[[id]]$x %>%
   diff()  
 autoplot(serie_dif, xlab = "Tempo", ylab = "Série diferenciada")
 ```
+
 A estacionariedade da série pode ser testada utilizando o teste Kwiatkowski-Phillips-Schmidt-Shin (KPSS), com a hipótese nula de que a série é estacionária. O teste resulta em um valor de `r kpss.test(serie_dif)[[1]]`, com p-valor de `r kpss.test(serie_dif)[[3]]`, que não nos permite rejeitar a hipótese nula a um nível de significância $\alpha = 0,05$.
 
 ```{r, include = FALSE}
@@ -69,26 +72,33 @@ ggarrange(graf_acf, graf_pacf,
 ```
 Dos gráficos apresentados, pode-se afirmar que a série diferenciada não apresenta um padrão claro de autocorrelações simples e sazonais que permita inferir diretamente a modelagem. Neste sentido, serão testados valores diferentes para *p*, *P*, *q* e *Q* e os diferentes modelos serão comparados por meio do critério AIC.
 
-```{r}
-auto.arima(M3[[id]]$x)
-```
-```{r}
+Para os diferentes valores de $(p,q,P,Q)$ teremos:
+
+```{r, echo = FALSE}
 melhor_AICc = Inf
-for(P in 0:2) {
-  for(Q in 0:2) {
-    for(p in 0:2) {
-      for(q  in 0:2) {
-    fit = Arima(M3[[id]]$x, order=c(p,1,q), seasonal=c(P,1,Q))
-    if(fit$aicc < melhor_AICc) {
-      melhor_AICc <- fit$aicc
-      cat("p =",p,", q =",q,", P =",P,", Q =",Q,", AICc =", fit$aicc, "\n")
-      
-    }
-    
+for (P in 0:1) { 
+  for (Q in 0:1) {
+    for (p in 0:2) { 
+      for (q in 0:2) {
+        fit = Arima(M3[[id]]$x, order=c(p,1,q), seasonal=c(P,1,Q))
+        if (fit$aicc < melhor_AICc) { 
+          melhor_AICc = fit$aicc
+          cat("p =",p,", q =",q,", P =",P,", Q =",Q,", AICc =", fit$aicc, "\n")
+        }
       }
     }
   }
 }
 ```
+O modelo com menor AICc foi o $SARIMA(1,1,1) \times (0,1,1)_{12}$. 
+
+Os coeficientes do modelo proposto, portanto, serão:
+
+```{r}
+fit1 <- Arima(M3[[id]]$x, order=c(1,1,1), seasonal=c(0,1,1))
+fit1
+```
+
+
 
 
