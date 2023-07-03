@@ -4,5 +4,8 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of Series-Trabalho2 is to ...
+Trabalho 2 da disciplina Análise de Séries Temporais
+-----------------------------------------------------
+Utiliza os dados da competição M2. 
+Ids possíveis: 1686 e 2040
 
