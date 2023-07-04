@@ -89,12 +89,8 @@ holt_aditivo$aic
 holt_winter_aditivo = ets(x, model = "MAM", damped=FALSE)
 holt_winter_aditivo$aic
 
-holt_winter_aditivo %>% plot()
+E <- holt_winter_aditivo$residuals %>% window(start=1985)
 
-E <- holt_winter_aditivo$residuals
-plot(E)
-
-E <- fit$residuals %>% window(start=1985)
 par(mfrow=c(2,2)); plot(E);acf(E);pacf(E);qqnorm(E);qqline(E)
 
 #estacionariedade
