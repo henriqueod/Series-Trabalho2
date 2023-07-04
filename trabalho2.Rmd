@@ -13,6 +13,8 @@ data(M3)
 id <- 1686
 
 M3[[id]]$period
+
+getwd()
 ```
 
 
