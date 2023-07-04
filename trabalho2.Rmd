@@ -3,7 +3,10 @@ title: "Análise de Séries Temporais - Trabalho 2"
 author: "Davi Guerra Alves - Henrique Oliveira Dumay"
 date: '2023-07-02'
 output: pdf_document
+header-includes:
+ \usepackage{float}
 ---
+
 
 ```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -11,16 +14,16 @@ lapply(c('dplyr','lubridate','Mcomp','forecast','tseries','ggplot2','ggpubr'),re
 # Dados
 data(M3)
 id <- 1686
-
-M3[[id]]$period
-
-getwd()
 ```
 
 
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H')
+```
+
 # Apresentação
 
-A série analisada consiste na série número `r id` pertencente ao banco de dados da competição de previsão M3, disponível no pacote *Mcomp* do software R. A série descreve o número de carregamentos de papale couché, mensalmente, de janeiro de 1983 a janeiro de 1994. 
+A série analisada consiste na série número `r id` pertencente ao banco de dados da competição de previsão M3, disponível no pacote *Mcomp* do software R. A série descreve o número de carregamentos com código _TD-AUTOUNITS_, mensalmente, de outubro de 1984 a setembro de 1993. 
 
 ```{r, fig.align="center",fig.cap='Comportamento da série ao longo do tempo',echo=FALSE}
 M3[[id]] %>% autoplot(xlab="Ano", ylab="n.º de carregamentos")
@@ -36,27 +39,20 @@ A decomposição MSTL mostra os componentes de tendência, sazonalidade e erro d
 
 A presença do componente de tendência explicita a não-estacionaridade da série original.A função ndiffs() é utilizada para estimar o número de diferenças exigidas para tornar a série estacionária por meio de um teste de raíz unitária, com a hipótese nula de que a série tem raízes estacionárias contra a hipótese alternativa de que a série tem raíz unitária. O teste retorna o menor número de diferenças exigidas para o teste em um nível de significância de 95%. Já a função nsdiffs() utiliza testes de raíz unitária para determinar o número de diferenças sazonais para tornar a série estacionária. 
 
-Com o uso das funções acima, obteve-se o valor para $d = 1$ e $D = 1$. Os modelos candidatos terão a forma:
+Com o uso das funções acima, obteve-se o valor para $d = 1$ e $D = 0$. Os modelos candidatos terão a forma:
 
-$$SARIMA(p, 1, q) \times (P, 1, Q)_{12}$$
+$$SARIMA(p, 1, q) \times (P, 0, Q)_{12}$$
 
-```{r, echo = FALSE, include = FALSE}
+```{r, echo = FALSE, include = FALSE, echo = FALSE}
 M3[[id]]$x %>%
   ndiffs()             # d = 1
 
 M3[[id]]$x %>%
   diff() %>%
-  nsdiffs()            # D = 1
-```
+  nsdiffs()            # D = 0
 
-
-A série diferenciada, portanto, passa a ser:
-
-
-```{r, fig.align="center",fig.cap='Série diferenciada', echo = FALSE}
 serie_dif <- M3[[id]]$x %>% 
-  diff()  
-autoplot(serie_dif, xlab = "Tempo", ylab = "Série diferenciada")
+  diff() 
 ```
 
 A estacionariedade da série pode ser testada utilizando o teste Kwiatkowski-Phillips-Schmidt-Shin (KPSS), com a hipótese nula de que a série é estacionária. O teste resulta em um valor de `r kpss.test(serie_dif)[[1]]`, com p-valor de `r kpss.test(serie_dif)[[3]]`, que não nos permite rejeitar a hipótese nula a um nível de significância $\alpha = 0,05$.
@@ -64,13 +60,14 @@ A estacionariedade da série pode ser testada utilizando o teste Kwiatkowski-Phi
 ```{r, include = FALSE}
 kpss.test(serie_dif)
 ```
-Consideramos que a série é, agora, estacionária, observamos os gráficos da função de autocorrelação e da função de autocorrelação parcial em busca de possíveis autocorrelações entre os diferentes atrasos da série
+Consideramos que a série é, agora, estacionária, observamos os gráficos da função de autocorrelação (ACF) e da função de autocorrelação parcial (PACF) em busca de possíveis autocorrelações entre os diferentes atrasos da série. Os gráficos a seguir ilustram a série diferenciada, assim como os gráficos das funções de ACF e PACF.
 
 ```{r, fig.align="center",fig.cap='Gráficos ACF e PACF', echo = FALSE}
-graf_acf  <- ggAcf(serie_dif, lag.max = 12*5) + ggtitle("") + xlab("")
-graf_pacf <- ggPacf(serie_dif, lag.max = 12*5)+ ggtitle("") + xlab("") 
-ggarrange(graf_acf, graf_pacf, 
-                    ncol = 1, nrow = 2)
+
+par(mfrow=c(3,1),mar=c(4, 3, 3, 1) + 0.5)
+plot(serie_dif,main="Série diferenciada")
+acf(serie_dif, lag = 5*12, main="ACF") 
+pacf(serie_dif, lag = 5*12, main="PACF")
 ```
 Dos gráficos apresentados, pode-se afirmar que a série diferenciada não apresenta um padrão claro de autocorrelações simples e sazonais que permita inferir diretamente a modelagem. Neste sentido, serão testados valores diferentes para *p*, *P*, *q* e *Q* e os diferentes modelos serão comparados por meio do critério AIC.
 
@@ -80,8 +77,8 @@ Para os diferentes valores de $(p,q,P,Q)$ teremos:
 melhor_AICc = Inf
 for (P in 0:1) { 
   for (Q in 0:1) {
-    for (p in 0:2) { 
-      for (q in 0:2) {
+    for (p in 0:3) { 
+      for (q in 0:3) {
         fit = Arima(M3[[id]]$x, order=c(p,1,q), seasonal=c(P,1,Q))
         if (fit$aicc < melhor_AICc) { 
           melhor_AICc = fit$aicc
@@ -92,15 +89,17 @@ for (P in 0:1) {
   }
 }
 ```
-O modelo com menor AICc foi o $SARIMA(1,1,1) \times (0,1,1)_{12}$. 
+O modelo com menor AICc foi o $SARIMA(2,1,3) \times (0,0,1)_{12}$. 
 
 Os coeficientes do modelo proposto, portanto, serão:
 
-```{r}
-fit1 <- Arima(M3[[id]]$x, order=c(1,1,1), seasonal=c(0,1,1))
-fit1
+```{r, include = FALSE}
+fit_arima <- Arima(M3[[id]]$x, order=c(2,1,3), seasonal=c(0,0,1))
+fit_arima
 ```
+O modelo proposto, portanto, tem os seguintes coeficientes:
 
+$$\phi_1 = -0,5572; \phi_2=-0,7207; \theta_1 = 0,0136; \theta_2 = 0,2117; \theta_3=-0,8811; \vartheta=0,4280$$
 
 
 
