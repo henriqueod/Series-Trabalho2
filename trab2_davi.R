@@ -47,11 +47,11 @@ for (P in 0:1) {
 arima_model = Arima(M3[[id]]$x,order=c(1,1,1),seasonal=c(1,0,1))
 arima_model
 
-arima_box_cox_model = Arima(x,order=c(1,1,1),seasonal=c(0,0,1), lambda = 'auto')
+arima_box_cox_model = Arima(x,order=c(1,1,1),seasonal=c(1,0,1), lambda = 'auto')
 arima_box_cox_model
 
 #verificando as previsões
-arima_model %>% forecast(h=24, level=c(80, 95)) %>% plot()
+arima_model %>% forecast(h=12, level=c(80, 95)) %>% plot()
 arima_box_cox_model %>% forecast(h=12, level=c(80, 95)) %>% plot()
 
 
