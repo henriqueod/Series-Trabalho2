@@ -14,6 +14,7 @@ lapply(c('dplyr','lubridate','Mcomp','forecast','tseries','ggplot2','ggpubr'),re
 # Dados
 data(M3)
 id <- 1686
+serie = M3[[id]]$x
 ```
 
 
@@ -32,7 +33,7 @@ M3[[id]] %>% plot(xlab="Ano", ylab="n.º de carregamentos")
 # Decomposição MSTL
 
 ```{r,fig.align="center",fig.cap='Decomposição MSTL', echo = FALSE}
-mstl(M3[[id]]$x, s.window= c(12)) %>% 
+mstl(serie, s.window= c(12)) %>% 
   plot(main="Série Original")
 ```
 A decomposição MSTL mostra os componentes de tendência, sazonalidade e erro da série estudada. Percebe-se a presença de uma tendência crescente, com múltiplas sazonalidades que apesentam mudança do comportamento ao longo do tempo. É possível observar, graficamente, um alargamento da sazonalidade ao fim da série quando comparando ao início da série. 
@@ -46,14 +47,14 @@ Com o uso das funções acima, obteve-se o valor para $d = 1$ e $D = 0$. Os mode
 $$SARIMA(p, 1, q) \times (P, 0, Q)_{12}$$
 
 ```{r, echo = FALSE, include = FALSE, echo = FALSE}
-M3[[id]]$x %>%
+serie %>%
   ndiffs()             # d = 1
 
-M3[[id]]$x %>%
+serie %>%
   diff() %>%
   nsdiffs()            # D = 0
 
-serie_dif <- M3[[id]]$x %>% 
+serie_dif <- serie %>% 
   diff() 
 ```
 
@@ -81,7 +82,7 @@ for (P in 0:1) {
   for (Q in 0:1) {
     for (p in 0:3) { 
       for (q in 0:3) {
-        fit = Arima(M3[[id]]$x, order=c(p,1,q), seasonal=c(P,0,Q))
+        fit = Arima(serie, order=c(p,1,q), seasonal=c(P,0,Q))
         if (fit$aicc < melhor_AICc) { 
           melhor_AICc = fit$aicc
           cat("p =",p,", q =",q,", P =",P,", Q =",Q,", AICc =", fit$aicc, "\n")
@@ -96,7 +97,7 @@ O modelo com menor AICc foi o $SARIMA(1,1,1) \times (1,0,1)_{12}$.
 Os coeficientes do modelo proposto, portanto, serão obtidos do cálculo da função Arima com o modelo acima proposto. Os coeficientes do modelo terão a seguinte forma:
 
 ```{r, include = FALSE}
-fit_arima <- Arima(M3[[id]]$x, order=c(1,1,1), seasonal=c(1,0,1))
+fit_arima <- Arima(serie, order=c(1,1,1), seasonal=c(1,0,1))
 fit_arima
 ```
 
@@ -105,7 +106,7 @@ $$\phi_1 = 0,3152; \theta_1 = -0,9218; \varphi = 0,9606; \vartheta = -0,7359$$
 Utilizaremos o modelo ARIMA acima definido com a transformação de Box-Cox com o objetivo de estabilizar os diferentes tipos de variação ao longo do tempo. O novo modelo tem os seguintes coeficientes:
 
 ```{r, include = FALSE}
-fit_arima_boxcox = Arima(M3[[id]]$x,order=c(1,1,1),seasonal=c(1,0,1), lambda = 'auto')
+fit_arima_boxcox = Arima(serie,order=c(1,1,1),seasonal=c(1,0,1), lambda = 'auto')
 fit_arima_boxcox
 ```
 $$\phi_1 = 0,2756; \theta_1 = -0,9209; \varphi = 0,9994; \vartheta = -0,9653$$
@@ -164,6 +165,65 @@ fit_arima %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,1)x(1,0
 fit_arima_boxcox %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,1)x(1,0,1)[12] com Box-Cox", main = "")
 ```
 
-akasdfssf5434
 
-]
+# Modelos ETS
+
+```{r}
+#passo 1) aplicar cada um dos modelos ets na série
+fit_ses = ets(serie, model = "ANN", damped=FALSE)
+fit_holt = ets(serie, model = "AAN", damped=FALSE)
+fit_holt_damped = ets(serie, model = "AAN", damped=TRUE)
+fit_holt_aditivo = ets(serie, model = "AAA", damped=FALSE)
+fit_holt_multi = ets(serie, model = "MAM", damped=FALSE)
+```
+
+
+```{r}
+#passo 2) selecionar o melhor modelo aicc
+
+fit_ses$aicc
+fit_holt$aicc
+fit_holt_damped$aicc
+fit_holt_aditivo$aicc
+fit_holt_multi$aicc
+
+#menor aicc foi do modelo  Holt Winter Multiplicativo, com o valor de 1925.053
+```
+
+
+```{r}
+#passo 3) verifique as suposições da série
+residuos_holt_multi <- fit_holt_multi$residuals %>% window(start=1985)
+
+par(mfrow=c(2,2))
+plot(residuos_holt_multi)
+acf(residuos_holt_multi)
+pacf(residuos_holt_multi)
+qqnorm(residuos_holt_multi)
+qqline(residuos_holt_multi)
+
+#estacionariedade
+kpss.test(residuos_holt_multi)
+
+#independencia
+Box.test(residuos_holt_multi, lag = 15, type ="Ljung-Box")
+
+#normalidade
+shapiro.test(residuos_holt_multi)
+
+#a série é normal, independente e estacionária.
+```
+
+
+```{r}
+#passo 4) Calcule previsões pontuais utilizando o modelo selecionado;
+fit_holt_multi %>% forecast(h=12) %>% plot()
+```
+
+
+```{r}
+# passo 4) Obtenha previsões intervalares utilizando o modelo de espaço de estado equivalente
+```
+
+
+

@@ -55,6 +55,7 @@ arima_model %>% forecast(h=12, level=c(80, 95)) %>% plot()
 arima_box_cox_model %>% forecast(h=12, level=c(80, 95)) %>% plot()
 
 
+
 #calculando os resíduos
 residuo_arima = arima_model$residuals
 residuo_arima_box_cox = arima_box_cox_model$residuals
