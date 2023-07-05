@@ -128,6 +128,8 @@ A estacionaridade será testada a partir do teste Kwiatkowski-Phillips-Schmidt-S
 | SARIMA sem Box-Cox | `r kpss.test(fit_arima$residuals)[[1]]` | `r kpss.test(fit_arima$residuals)[[3]]` |
 | SARIMA com Box-Cox | `r kpss.test(fit_arima_boxcox$residuals)[[1]]` | `r kpss.test(fit_arima_boxcox$residuals)[[3]]` |
 
+De acordo com o teste KPSS, não se pode rejeitar a hipótese de estacionariedade dos resíduos de ambos os modelos. 
+
 O teste de independência dos resíduos é realizado a partir do teste Ljung-Box, com a hipótese $H_0$ de que os resíduos são idenpendentemente distribuídos. O teste apresenta os seguintes valores para os dois modelos:
 
 | Modelo | Chi-Quadrado | Graus de liberdade | P-valor |
@@ -162,4 +164,6 @@ fit_arima %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,1)x(1,0
 fit_arima_boxcox %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,1)x(1,0,1)[12] com Box-Cox", main = "")
 ```
 
-akasdfssf
+akasdfssf5434
+
+]
