@@ -26,14 +26,14 @@ knitr::opts_chunk$set(fig.pos = 'H')
 A série analisada consiste na série número `r id` pertencente ao banco de dados da competição de previsão M3, disponível no pacote *Mcomp* do software R. A série descreve o número de carregamentos com código _TD-AUTOUNITS_, mensalmente, de outubro de 1984 a setembro de 1993. 
 
 ```{r, fig.align="center",fig.cap='Comportamento da série ao longo do tempo',echo=FALSE}
-M3[[id]] %>% autoplot(xlab="Ano", ylab="n.º de carregamentos")
+M3[[id]] %>% plot(xlab="Ano", ylab="n.º de carregamentos")
 ```
 
 # Decomposição MSTL
 
 ```{r,fig.align="center",fig.cap='Decomposição MSTL', echo = FALSE}
 mstl(M3[[id]]$x, s.window= c(12)) %>% 
-  autoplot(main="Série Original")
+  plot(main="Série Original")
 ```
 A decomposição MSTL mostra os componentes de tendência, sazonalidade e erro da série estudada. Percebe-se a presença de uma tendência crescente, com múltiplas sazonalidades que apesentam mudança do comportamento ao longo do tempo. É possível observar, graficamente, um alargamento da sazonalidade ao fim da série quando comparando ao início da série. 
 
@@ -91,15 +91,30 @@ for (P in 0:1) {
 ```
 O modelo com menor AICc foi o $SARIMA(2,1,3) \times (0,0,1)_{12}$. 
 
-Os coeficientes do modelo proposto, portanto, serão:
+Os coeficientes do modelo proposto, portanto, serão obtidos do cálculo da função Arima com o modelo acima proposto. Os coeficientes do modelo terão a seguinte forma:
 
 ```{r, include = FALSE}
 fit_arima <- Arima(M3[[id]]$x, order=c(2,1,3), seasonal=c(0,0,1))
 fit_arima
 ```
-O modelo proposto, portanto, tem os seguintes coeficientes:
+
 
 $$\phi_1 = -0,5572; \phi_2=-0,7207; \theta_1 = 0,0136; \theta_2 = 0,2117; \theta_3=-0,8811; \vartheta=0,4280$$
+Utilizaremos o modelo ARIMA acima definido com a transformação de Box-Cox com o objetivo de estabilizar os diferentes tipos de variação ao longo do tempo. O novo modelo tem os seguintes coeficientes:
+
+```{r, include = FALSE}
+fit_arima_boxcox = Arima(M3[[id]]$x,order=c(2,1,3),seasonal=c(0,0,1), lambda = 'auto')
+fit_arima_boxcox
+```
+$$\phi_{1bc} = 1,6428; \phi_{2bc} = -0,7597; \theta_{1bc} =-2,2962; \theta_{2bc} = 1,6333; \theta_{3bc} = -0,3207; \vartheta=0,2348$$
+
+As previsões dos modelos:
+
+```{r, fig.align="center", fig.cap="Previsões dos modelos ARIMA", echo = FALSE}
+arima_layout <- layout(matrix(c(1,2),ncol=1), heights=c(20,20), TRUE)
+fit_arima %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(2,1,3)x(0,0,1)[12]", main = "")
+fit_arima_boxcox %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(2,1,3)x(0,0,1)[12] com Box-Cox", main = "")
+```
 
 
 
