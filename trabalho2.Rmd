@@ -113,14 +113,28 @@ $$\phi_1 = 0,2756; \theta_1 = -0,9209; \varphi = 0,9994; \vartheta = -0,9653$$
 
 ## Análise de Resíduos
 
-Os resíduos dos modelos descritos apresentam o seguinte comportamento gráfico
+Os resíduos do modelo ARIMA sem transformação apresentam o seguinte comportamentos gráficos:
 
-```{r fig.align="center",fig.cap='Resíduos', echo = FALSE}
-par(mfrow=c(1,2))
+```{r fig.align="center",fig.cap='Resíduos ARIMA sem transformação', echo = FALSE}
+par(mfrow=c(2,2))
 plot(fit_arima$residuals, ylab = "Resíduos", xlab = "")
-plot(fit_arima_boxcox$residuals, ylab = "Resíduos", xlab = "")
+acf(fit_arima$residuals, main="")
+pacf(fit_arima$residuals, main="")
+qqnorm(fit_arima$residuals, main="")
+qqline(fit_arima$residuals)
 ```
-Os resíduos precisam ser estacionários, independentes e normalmente distribuiídos. Essas hipóteses serão testadas conforme se segue.
+Já os resíduos do modelo ARIMA com transformação Box-Cox apresentam o seguinte comportamentos gráficos:
+
+```{r fig.align="center",fig.cap='Resíduos ARIMA sem transformação', echo = FALSE}
+par(mfrow=c(2,2))
+plot(fit_arima_boxcox$residuals, ylab = "Resíduos", xlab = "")
+acf(fit_arima_boxcox$residuals, main="")
+pacf(fit_arima_boxcox$residuals, main="")
+qqnorm(fit_arima_boxcox$residuals, main="")
+qqline(fit_arima_boxcox$residuals)
+```
+
+Graficamente, observa-se que os resíduos de ambos os modelos parecem distribuir-se simetricamente ao retor da origem e não apresentam autocorrelações bem definidas. Precisa-se, entretanto, testá-los para estacionariedade, independência e distribuição normal. Essas hipóteses serão testadas conforme se segue.
 
 A estacionaridade será testada a partir do teste Kwiatkowski-Phillips-Schmidt-Shin (KPSS), com a hipótese nula de que a série é estacionária. O teste para o modelo $SARIMA(1,1,1) \times (1,0,1)_{12}$ e para o mesmo modelo, utilizando a transformação de Box-Cox:
 
@@ -155,6 +169,8 @@ Do resultado acima, não se pode rejeitar a hipótese de normalidade dos resídu
 ```{r, include = FALSE}
 shapiro.test(fit_arima$residuals)[[2]]
 ```
+
+
 ## Previsões
 
 As previsões dos modelos:
@@ -167,6 +183,21 @@ fit_arima_boxcox %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,
 
 
 # Modelos ETS
+
+O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. 
+
+```{r}
+ets1 <- ets(serie, model = "AAA", damped = FALSE)
+ets2 <- ets(serie, model = "MAM", damped = FALSE)
+ets3 <- ets(serie, model = "AAA", damped = TRUE)
+ets4 <- ets(serie, model = "MAM", damped = TRUE)
+ets1$aicc
+ets2$aicc
+ets3$aicc
+ets4$aicc
+ets(serie) %>% plot()
+```
+
 
 ```{r}
 #passo 1) aplicar cada um dos modelos ets na série
