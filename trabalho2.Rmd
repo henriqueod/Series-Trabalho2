@@ -10,7 +10,7 @@ header-includes:
 
 ```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-lapply(c('dplyr','lubridate','Mcomp','forecast','tseries','ggplot2','ggpubr'),require,character.only=TRUE)
+lapply(c('dplyr','lubridate','Mcomp','forecast','tseries','ggplot2','ggpubr','stringr'),require,character.only=TRUE)
 # Dados
 data(M3)
 id <- 1686
@@ -185,6 +185,45 @@ fit_arima_boxcox %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,
 # Modelos ETS
 
 O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. 
+
+```{r}
+componentes_tendencia = c("A","M")
+componentes_sazonais = c("N","A","M")
+componentes_erros = c("A","M")
+
+model_ets = function(y,model,damped){
+  tryCatch({
+    ets(y,model,damped)
+  },
+  error=function(cond)print('nao pode')
+  )
+}
+
+damped = F
+melhor_AICc = Inf   
+melhor_modelo = ""
+for(comp_erro in componentes_erros){
+  for(comp_tend in componentes_tendencia){
+    for(comp_saz in componentes_sazonais){
+      for(damped in c(T,F)){
+        modelo = paste0(comp_erro,comp_tend,comp_saz)
+        print("------------")
+        print(modelo)
+        print("damped=")
+        print(damped)
+        modelo_ets = model_ets(serie, model=modelo, damped = damped)
+        print(modelo_ets['aicc'])
+      }
+    }
+  }
+}
+
+fit_ets = ets(serie, model="MMM",damped=T)
+fit_ets$aicc
+autoplot(fit_ets)
+```
+
+
 
 ```{r}
 ets1 <- ets(serie, model = "AAA", damped = FALSE)
