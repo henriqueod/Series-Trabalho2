@@ -214,9 +214,6 @@ model_ets = function(y,model,damped){
   )
 }
 
-damped = F
-melhor_AICc = Inf   
-melhor_modelo = ""
 for(comp_erro in componentes_erros){
   for(comp_tend in componentes_tendencia){
     for(comp_saz in componentes_sazonais){
@@ -232,7 +229,26 @@ for(comp_erro in componentes_erros){
     }
   }
 }
+
+for(comp_erro in componentes_erros){
+  for(comp_tend in componentes_tendencia){
+    for(comp_saz in componentes_sazonais){
+      for(damped in c(T,F)){
+        modelo = paste0(comp_erro,comp_tend,comp_saz)
+        print("------------")
+        print(modelo)
+        print("damped=")
+        print(damped)
+        modelo_ets = model_ets(BoxCox(serie, 
+                                      lambda = BoxCox.lambda(serie)),
+                               model=modelo, damped = damped)
+        print(modelo_ets['aicc'])
+      }
+    }
+  }
+}
 fit_ets <- ets(serie, model = "MMM", damped = FALSE)
+fit_ets_boxcox <- ets(BoxCox(serie,lambda = BoxCox.lambda(serie)), model = "MMM", damped = FALSE)
 ```
 O modelo selecionado apresenta a seguinte estrutura:
 
@@ -249,35 +265,63 @@ $$
 plot(fit_ets, xlab = "Decomposição ETS")
 ```
 
+
 ## Resíduos
 
 Os resíduos do modelo ETS selecionado são ilustrados na figura a seguir:
 
-```{r, fig.align="center", fig.cap="Análise de Resíduos", echo = FALSE}
-E <- fit_ets$residuals
+```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS", echo = FALSE}
+residuo_ets <- fit_ets$residuals
 par(mfrow=c(2,2)); 
-plot(E, xlab = "Tempo", ylab = "");
-acf(E, main="");
-pacf(E, main="");
-qqnorm(E, main="");qqline(E)
+plot(residuo_ets, xlab = "Tempo", ylab = "");
+acf(residuo_ets, main="");
+pacf(residuo_ets, main="");
+qqnorm(residuo_ets, main="");qqline(residuo_ets)
+```
+
+
+```{r, include = FALSE}
+kpss_ets = kpss.test(residuo_ets)
+box_ets = Box.test(residuo_ets, lag = 15, type ="Ljung-Box")
+shap_ets = shapiro.test(residuo_ets)
 ```
 
 Observa-se que os resíduos parecem comportar-se de maneira aleatória, com distribuição normal e sem autocorrelações importantes entre diferentes lags. Os testes formais encontram-se na tabela abaixo, a exemplo do anteriormente realizado:
 
-```{r, include = FALSE}
-kpss.test(E)
-Box.test(E, lag = 15, type ="Ljung-Box")
-shapiro.test(E)
+| Teste | Valor do teste | P-valor |
+|---|---|:---:|
+| KPSS | `r round(kpss_ets$statistic,3)` | `r round(kpss_ets$p.value,3)` |
+| Box-Ljung | `r round(box_ets$statistic,3)` | `r round(box_ets$p.value,3)` |
+| Shapiro-Wilk | `r round(shap_ets$statistic,3)` | `r round(shap_ets$p.value,3)` |
 
+
+Agora analisando o modelo ETS(M,M,M), com a transformação boxcox, temos os seguintes resultados:
+
+
+
+```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS com boxcox", echo = FALSE}
+residuo_ets_boxcox <- fit_ets_boxcox$residuals
+par(mfrow=c(2,2)); 
+plot(residuo_ets_boxcox, xlab = "Tempo", ylab = "");
+acf(residuo_ets_boxcox, main="");
+pacf(residuo_ets_boxcox, main="");
+qqnorm(residuo_ets_boxcox, main="");qqline(residuo_ets_boxcox)
+
+```
+
+Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência.
+
+```{r, include = FALSE}
+kpss_ets_boxcox = kpss.test(residuo_ets_boxcox)
+box_ets_boxcox  = Box.test(residuo_ets_boxcox, lag = 15, type ="Ljung-Box")
+shap_ets_boxcox = shapiro.test(residuo_ets_boxcox)
 ```
 
 | Teste | Valor do teste | P-valor |
 |---|---|:---:|
-| KPSS | 0.12301 | 0.1 |
-| Box-Ljung | 25.522 | 0.04336 |
-| Shapiro-Wilk | 0.98751 | 0.4163 |
-
-Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência.
+| KPSS | `r round(kpss_ets_boxcox$statistic,3)` | `r round(kpss_ets_boxcox$p.value,3)` |
+| Box-Ljung | `r round(box_ets_boxcox$statistic,3)` | `r round(box_ets_boxcox$p.value,3)` |
+| Shapiro-Wilk | `r round(shap_ets_boxcox$statistic,3)` | `r round(shap_ets_boxcox$p.value,3)` |
 
 Uma previsão do modelo para 12 novos períodos é ilustrada abaixo:
 
@@ -285,64 +329,8 @@ Uma previsão do modelo para 12 novos períodos é ilustrada abaixo:
 fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MMM'")
 ```
 
-
-
-```{r}
-#passo 1) aplicar cada um dos modelos ets na série
-fit_ses = ets(serie, model = "ANN", damped=FALSE)
-fit_holt = ets(serie, model = "AAN", damped=FALSE)
-fit_holt_damped = ets(serie, model = "AAN", damped=TRUE)
-fit_holt_aditivo = ets(serie, model = "AAA", damped=FALSE)
-fit_holt_multi = ets(serie, model = "MAM", damped=FALSE)
+```{r, , fig.align="center", fig.cap="Previsão ETS com transformação boxcox", echo = FALSE}
+fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MMM' com transformação boxcox")
 ```
-
-
-```{r}
-#passo 2) selecionar o melhor modelo aicc
-
-fit_ses$aicc
-fit_holt$aicc
-fit_holt_damped$aicc
-fit_holt_aditivo$aicc
-fit_holt_multi$aicc
-
-#menor aicc foi do modelo  Holt Winter Multiplicativo, com o valor de 1925.053
-```
-
-
-```{r}
-#passo 3) verifique as suposições da série
-residuos_holt_multi <- fit_holt_multi$residuals %>% window(start=1985)
-
-par(mfrow=c(2,2))
-plot(residuos_holt_multi)
-acf(residuos_holt_multi)
-pacf(residuos_holt_multi)
-qqnorm(residuos_holt_multi)
-qqline(residuos_holt_multi)
-
-#estacionariedade
-kpss.test(residuos_holt_multi)
-
-#independencia
-Box.test(residuos_holt_multi, lag = 15, type ="Ljung-Box")
-
-#normalidade
-shapiro.test(residuos_holt_multi)
-
-#a série é normal, independente e estacionária.
-```
-
-
-```{r}
-#passo 4) Calcule previsões pontuais utilizando o modelo selecionado;
-fit_holt_multi %>% forecast(h=12) %>% plot()
-```
-
-
-```{r}
-# passo 4) Obtenha previsões intervalares utilizando o modelo de espaço de estado equivalente
-```
-
-
+    
 
