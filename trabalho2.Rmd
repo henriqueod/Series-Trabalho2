@@ -10,7 +10,7 @@ header-includes:
 
 ```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-lapply(c('dplyr','lubridate','Mcomp','forecast','tseries','ggplot2','ggpubr','stringr'),require,character.only=TRUE)
+lapply(c('dplyr','lubridate','Mcomp','forecast','tseries','ggplot2','ggpubr','stringr','knitr'),require,character.only=TRUE)
 # Dados
 data(M3)
 id <- 1686
@@ -332,5 +332,34 @@ fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MMM'")
 ```{r, , fig.align="center", fig.cap="Previsão ETS com transformação boxcox", echo = FALSE}
 fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MMM' com transformação boxcox")
 ```
-    
+
+### Resultados
+
+```{r}
+h = 5
+#comparar os 4 modelos com os modelos abaixo
+
+fit_auto_arima = auto.arima(serie) %>% forecast() %>% accuracy()
+fit_ses = ses(serie, h=h)  %>% forecast() %>% accuracy()
+fit_holt = holt(serie, h=h) %>% forecast() %>% accuracy()
+fit_ets = ets(serie) %>% forecast() %>% accuracy()
+fit_stlf = stlf(serie, h=h) %>% forecast() %>% accuracy()
+fit_bats = bats(serie) %>% forecast() %>% accuracy()
+fit_tbats = tbats(serie) %>% forecast() %>% accuracy()
+
+acuracia <- rbind(fit_auto_arima[3],
+                  fit_ses[3],
+                  fit_holt[3],
+                  fit_ets[3],
+                  fit_stlf[3],
+                  fit_bats[3],
+                  fit_tbats[3])
+
+modelos = c("auto arima","ses","holt","ets","stlf","bats","tbats")
+
+resultados = cbind(modelos, round(acuracia,3))
+
+kable(resultados,col.names = c("Modelo", "Acuracia"),align = "c")
+```
+
 
