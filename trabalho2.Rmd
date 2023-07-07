@@ -218,9 +218,15 @@ for(comp_erro in componentes_erros){
   }
 }
 
-fit_ets = ets(serie, model="MMM",damped=T)
+fit_ets = ets(serie, model="MMM",damped=F)
 fit_ets$aicc
 autoplot(fit_ets)
+forecast(fit_ets,12) %>% plot
+
+fit_ets_boxcox = ets(BoxCox(serie, lambda = 'auto'),model='MMM',damped=F)
+fit_ets_boxcox
+autoplot(fit_ets_boxcox)
+forecast(fit_ets_boxcox,12) %>% plot
 ```
 
 
