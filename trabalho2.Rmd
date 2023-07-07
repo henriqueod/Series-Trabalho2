@@ -125,7 +125,7 @@ qqline(fit_arima$residuals)
 ```
 Já os resíduos do modelo ARIMA com transformação Box-Cox apresentam o seguinte comportamentos gráficos:
 
-```{r fig.align="center",fig.cap='Resíduos ARIMA sem transformação', echo = FALSE}
+```{r fig.align="center",fig.cap='Resíduos ARIMA com transformação boxcox', echo = FALSE}
 par(mfrow=c(2,2))
 plot(fit_arima_boxcox$residuals, ylab = "Resíduos", xlab = "")
 acf(fit_arima_boxcox$residuals, main="")
@@ -186,9 +186,24 @@ fit_arima_boxcox %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,
 
 O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. 
 
-```{r}
+Os modelos que apresentam as características observadas na decomposição e seus respectivos AICcs estão representados na tabela abaixo:
+
+| Modelo | AICc |
+|---|:---:|
+| AAA | 1950.568 |
+| AAA Dumped | 1953.429 |
+| MAA | 1947.757 |
+| MAA Dumped | 1942.956 |
+| MAM | 1925.053 |
+| MAM Dumped | 1928.537 |
+| MMM | 1923.268 |
+| MMM Dumped | 1928.128 |
+
+O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo é o "MMM", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. 
+
+```{r, include = FALSE}
 componentes_tendencia = c("A","M")
-componentes_sazonais = c("N","A","M")
+componentes_sazonais = c("A","M")
 componentes_erros = c("A","M")
 
 model_ets = function(y,model,damped){
@@ -217,31 +232,59 @@ for(comp_erro in componentes_erros){
     }
   }
 }
+fit_ets <- ets(serie, model = "MMM", damped = FALSE)
+```
+O modelo selecionado apresenta a seguinte estrutura:
 
-fit_ets = ets(serie, model="MMM",damped=F)
-fit_ets$aicc
-autoplot(fit_ets)
-forecast(fit_ets,12) %>% plot
+$$
+\begin{aligned}
+\mu_t &= l_{t-1} b_{t-1}s_{t-m}\\
+l_t &= l_{t-1}b_{t-1}+\frac{\alpha \epsilon_t}{s_{t-m}}\\
+b_t &=b_{t-1}+\frac{\beta \epsilon_t}{s_{t-m}l_{t-1}} \\
+s_t &=s_{t-m} + \frac{\gamma \epsilon_t}{l_{t-1}b_{t-1}}
+\end{aligned}
+$$
 
-fit_ets_boxcox = ets(BoxCox(serie, lambda = 'auto'),model='MMM',damped=F)
-fit_ets_boxcox
-autoplot(fit_ets_boxcox)
-forecast(fit_ets_boxcox,12) %>% plot
+```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
+plot(fit_ets, xlab = "Decomposição ETS")
 ```
 
+## Resíduos
 
+Os resíduos do modelo ETS selecionado são ilustrados na figura a seguir:
 
-```{r}
-ets1 <- ets(serie, model = "AAA", damped = FALSE)
-ets2 <- ets(serie, model = "MAM", damped = FALSE)
-ets3 <- ets(serie, model = "AAA", damped = TRUE)
-ets4 <- ets(serie, model = "MAM", damped = TRUE)
-ets1$aicc
-ets2$aicc
-ets3$aicc
-ets4$aicc
-ets(serie) %>% plot()
+```{r, fig.align="center", fig.cap="Análise de Resíduos", echo = FALSE}
+E <- fit_ets$residuals
+par(mfrow=c(2,2)); 
+plot(E, xlab = "Tempo", ylab = "");
+acf(E, main="");
+pacf(E, main="");
+qqnorm(E, main="");qqline(E)
 ```
+
+Observa-se que os resíduos parecem comportar-se de maneira aleatória, com distribuição normal e sem autocorrelações importantes entre diferentes lags. Os testes formais encontram-se na tabela abaixo, a exemplo do anteriormente realizado:
+
+```{r, include = FALSE}
+kpss.test(E)
+Box.test(E, lag = 15, type ="Ljung-Box")
+shapiro.test(E)
+
+```
+
+| Teste | Valor do teste | P-valor |
+|---|---|:---:|
+| KPSS | 0.12301 | 0.1 |
+| Box-Ljung | 25.522 | 0.04336 |
+| Shapiro-Wilk | 0.98751 | 0.4163 |
+
+Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência.
+
+Uma previsão do modelo para 12 novos períodos é ilustrada abaixo:
+
+```{r, , fig.align="center", fig.cap="Previsão ETS", echo = FALSE}
+fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MMM'")
+```
+
 
 
 ```{r}
