@@ -103,17 +103,64 @@ fit_arima
 
 
 $$\phi_1 = 0,3152; \theta_1 = -0,9218; \varphi = 0,9606; \vartheta = -0,7359$$
-Utilizaremos o modelo ARIMA acima definido com a transformação de Box-Cox com o objetivo de estabilizar os diferentes tipos de variação ao longo do tempo. O novo modelo tem os seguintes coeficientes:
+Para o modelo ARIMA utilizando transformação Box-Cox, os valores para *d* e *D* utilizando as funções _ndiffs()_ e _nsdiffs()_ são, respectivamente, *1* e *0*. De acordo com o teste KPSS, não se pode rejeitar a hipótese nula da série transformada ser estacionária (KPSS = 0.021624 e p-valor = 0.1). O valor do parâmetro $\lambda$ da transformação de Box-Cox é 0.09559902.
+```{r, include=FALSE}
+BoxCox.lambda(M3[[id]]$x)
+serie_box_cox <- BoxCox(M3[[id]]$x, lambda = "auto")
+
+serie_box_cox %>%
+  ndiffs()             # d = 1
+
+serie_box_cox %>%
+  diff() %>%
+  nsdiffs()            # D = 0
+
+serie_box_cox_dif <- serie_box_cox %>% 
+  diff() 
+
+# Teste de estacionariedada da série diferenciada
+kpss.test(serie_box_cox_dif)
+```
+
+```{r, fig.align="center",fig.cap='Gráficos ACF e PACF da série transformada (BoxCox)', echo = FALSE}
+par(mfrow=c(3,1),mar=c(4, 3, 3, 1) + 0.5)
+plot(serie_box_cox_dif,main="Série diferenciada", ylab = "", xlab = "")
+acf(serie_box_cox_dif, lag = 5*12, main="ACF", ylab = "") 
+pacf(serie_box_cox_dif, lag = 5*12, main="PACF", ylab = "")
+```
+A análise gráfica da funções de autocorrelação e autocorrelação da série transformada não permite a inferência a respeito de seus parâmetros de maneira clara. Procede-se a pesquisa de valores de p, q, P e Q de forma manual de acordo com o critério de AICc.
+
+```{r, echo = FALSE}
+melhor_AICc = Inf
+for (P in 0:1) { 
+  for (Q in 0:1) {
+    for (p in 0:3) { 
+      for (q in 0:3) {
+        fit = Arima(serie, order=c(p,1,q), seasonal=c(P,0,Q), lambda = 'auto')
+        if (fit$aicc < melhor_AICc) { 
+          melhor_AICc = fit$aicc
+          cat("p =",p,", q =",q,", P =",P,", Q =",Q,", AICc =", fit$aicc, "\n")
+        }
+      }
+    }
+  }
+}
+```
+
+Para a série transformada, temos que o menor nível de AICc foi encontrado com os parâmetros $p = 3$, $q = 3$, $P = 1$ e $Q = 1$, cujo modelo pode ser descrito por $SARIMA(3,1,3) \times (1,0,1)_{12}$, com coeficientes iguais a: 
 
 ```{r, include = FALSE}
-fit_arima_boxcox = Arima(serie,order=c(1,1,1),seasonal=c(1,0,1), lambda = 'auto')
+
+fit_arima_boxcox = Arima(serie,order=c(3,1,3),seasonal=c(1,0,1), lambda = 'auto')
 fit_arima_boxcox
 ```
-$$\phi_1 = 0,2756; \theta_1 = -0,9209; \varphi = 0,9994; \vartheta = -0,9653$$
+
+
+$$\phi_1 = 1,2866; \phi_2=-1,0479; \phi_3=0,2771; \theta_1 = -2,0555; \theta_2 = 2,0480. \theta_3 = -0,9371; \varphi = 0,9995; \vartheta = -0,9649$$
 
 ## Análise de Resíduos
 
-Os resíduos do modelo ARIMA sem transformação apresentam o seguinte comportamentos gráficos:
+Os resíduos do modelo ARIMA sem transformação apresentam o seguinte comportamento gráfico:
 
 ```{r fig.align="center",fig.cap='Resíduos ARIMA sem transformação', echo = FALSE}
 par(mfrow=c(2,2))
@@ -123,14 +170,14 @@ pacf(fit_arima$residuals, main="")
 qqnorm(fit_arima$residuals, main="")
 qqline(fit_arima$residuals)
 ```
-Já os resíduos do modelo ARIMA com transformação Box-Cox apresentam o seguinte comportamentos gráficos:
+Já os resíduos do modelo ARIMA com transformação Box-Cox apresentam o seguinte comportamento gráfico:
 
 ```{r fig.align="center",fig.cap='Resíduos ARIMA com transformação boxcox', echo = FALSE}
 par(mfrow=c(2,2))
 plot(fit_arima_boxcox$residuals, ylab = "Resíduos", xlab = "")
-acf(fit_arima_boxcox$residuals, main="")
-pacf(fit_arima_boxcox$residuals, main="")
-qqnorm(fit_arima_boxcox$residuals, main="")
+acf(fit_arima_boxcox$residuals, main="", xlab="")
+pacf(fit_arima_boxcox$residuals, main="", xlab="")
+qqnorm(fit_arima_boxcox$residuals, main="", xlab="")
 qqline(fit_arima_boxcox$residuals)
 ```
 
@@ -155,7 +202,7 @@ O teste de independência dos resíduos é realizado a partir do teste Ljung-Box
 ```{r, include = FALSE}
 Box.test(fit_arima$residuals, lag = 15, type ="Ljung-Box")[[3]]
 ```
-Os resultados acima mostram que a independência dos resíduos pode ser rejeitada ao nível de significância de 5% no modelo que utiliza a transformação de Box-Cox, enquanto não pode ser rejeitada no modelo SARIMA natural. 
+Os resultados acima mostram que a independência dos resíduos pode ser rejeitada ao nível de significância de 5% em ambos os modelos. 
 
 A normalidade dos resíduos é testada com o teste Shapiro-Wilk de Normalidade, com $H_0$ de que os resíduos apresentam distribuição normal. O valor do teste estatístico para os dois modelos trabalhados é:
 
@@ -286,7 +333,7 @@ box_ets = Box.test(residuo_ets, lag = 15, type ="Ljung-Box")
 shap_ets = shapiro.test(residuo_ets)
 ```
 
-Observa-se que os resíduos parecem comportar-se de maneira aleatória, com distribuição normal e sem autocorrelações importantes entre diferentes lags. Os testes formais encontram-se na tabela abaixo, a exemplo do anteriormente realizado:
+Observa-se que os resíduos parecem comportar-se de maneira aleatória, com distribuição normal e sem autocorrelações importantes entre diferentes intervalos. Os testes formais encontram-se na tabela abaixo, a exemplo do anteriormente realizado:
 
 | Teste | Valor do teste | P-valor |
 |---|---|:---:|
