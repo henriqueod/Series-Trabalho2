@@ -426,7 +426,7 @@ f_ets <- function(y, h){
   forecast(fit, h)
 }
 f_ets_boxcox <- function(y, h){
-  fit = ets(y, model="MMM", dumped = TRUE, lambda = "auto")
+  fit = ets(y, model="MAM", dumped = TRUE, lambda = "auto")
   forecast(fit, h)
 }
 
@@ -434,23 +434,24 @@ f_ets_boxcox <- function(y, h){
 CV_arima = tsCV(y=serie, 
                 forecastfunction=f_arima, 
                 h=5, 
-                window = 14)
+                init = length(serie)-14)
 CV_arima_boxcox = tsCV(y=serie, 
-                       forecastfunction=f_arima_boxcox(), 
+                       forecastfunction=f_arima_boxcox, 
                        h=5, 
-                       window = 14)
+                       init = length(serie)-14)
 CV_ets = tsCV(y=serie, 
               forecastfunction=f_ets, 
               h=5, 
-              window = 14
-)
-CV_ets_boxcos = tsCV(y=serie, 
-                     forecastfunction=f_ets_boxcox(), 
+              init = length(serie)-14)
+CV_ets_boxcox = tsCV(y=serie, 
+                     forecastfunction=f_ets_boxcox, 
                      h=5, 
-                     window = 14
-)
+                     init = length(serie)-14)
 
-CV_arima %>% round(2) 
+CV_arima %>% round(2) %>% tail(20)
+CV_arima_boxcox %>% round(2)  %>% tail(20)
+CV_ets %>% round(2) %>% tail(20)
+CV_ets_boxcox %>% round(2) %>% tail(20)
 ```
 
 
