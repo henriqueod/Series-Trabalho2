@@ -280,7 +280,6 @@ plot(fit_ets, xlab = "Decomposição ETS")
 
 Utilizando o modelo ETS com uma transformação do tipo Box-Cox
 
-```{r}
 ```{r, include = FALSE}
 componentes_tendencia = c("A","M")
 componentes_sazonais = c("A","M")
@@ -309,7 +308,7 @@ s_t &=s_{t-m} + \frac{\gamma \epsilon_t}{l_{t-1}b_{t-1}}
 \end{aligned}
 $$
 
-```
+
 
 
 
