@@ -250,7 +250,7 @@ Os modelos que apresentam as características observadas na decomposição e seu
 O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo, para o modelo não transformado é o "*MMM*", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. Já para o modelo com transformação de Box-Cox, o modelo com menor AICc é o "*MAM*" *com dumped*. 
 ```{r, include = FALSE}
 fit_ets <- ets(serie, model = "MMM", damped = FALSE)
-fit_ets_boxcox <- ets(BoxCox(serie,lambda = BoxCox.lambda(serie)), model = "MAM", damped = TRUE)
+fit_ets_boxcox <- ets(BoxCox(serie,lambda = "auto"), model = "MAM", damped = TRUE)
 ```
 
 O modelo selecionado sem transformação apresenta a seguinte estrutura:
@@ -277,39 +277,6 @@ $$
 ```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
 plot(fit_ets, xlab = "Decomposição ETS")
 ```
-
-Utilizando o modelo ETS com uma transformação do tipo Box-Cox
-
-```{r, include = FALSE}
-componentes_tendencia = c("A","M")
-componentes_sazonais = c("A","M")
-componentes_erros = c("A","M")
-
-model_ets = function(y,model,damped){
-  tryCatch({
-    ets(y,model,damped, lambda = "auto")
-  },
-  error=function(cond)print('nao pode')
-  )
-}
-
-
-fit_ets <- ets(serie, model = "MMM", damped = FALSE)
-fit_ets_boxcox <- ets(BoxCox(serie,lambda = BoxCox.lambda(serie)), model = "MMM", damped = FALSE)
-```
-O modelo selecionado apresenta a seguinte estrutura:
-
-$$
-\begin{aligned}
-\mu_t &= l_{t-1} b_{t-1}s_{t-m}\\
-l_t &= l_{t-1}b_{t-1}+\frac{\alpha \epsilon_t}{s_{t-m}}\\
-b_t &=b_{t-1}+\frac{\beta \epsilon_t}{s_{t-m}l_{t-1}} \\
-s_t &=s_{t-m} + \frac{\gamma \epsilon_t}{l_{t-1}b_{t-1}}
-\end{aligned}
-$$
-
-
-
 
 
 ## Resíduos
@@ -383,31 +350,29 @@ Uma previsão do modelo para 12 novos períodos é ilustrada abaixo:
 fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MMM'")
 ```
 
-```{r, , fig.align="center", fig.cap="Previsão ETS com transformação boxcox", echo = FALSE}
+```{r, fig.align="center", fig.cap="Previsão ETS com transformação boxcox", echo = FALSE}
 fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MAM' com Dumped com transformação boxcox")
 ```
 
 # Estudo de desempenho preditivo por janela deslizante
 
-Considerante os dois modelos ARIMA e os dois modelos ETS anteriormente escolhidos, será realizado um estudo de desempenho preditivo por janela deslizante para a série M3 com ID `r id` em n-14 e considerando um horizonte de até 5 meses a frente. 
+Considerante os dois modelos ARIMA e os dois modelos ETS anteriormente escolhidos, será realizado um estudo de desempenho preditivo por janela deslizante para a série M3 com ID `r id` com conjunto de treino consistindo nos últimos 14 períodos e considerando um horizonte preditivo de até 5 meses a frente. Para tal será utilizado a função tsCV, que calcula os erros de previsão obtidos aplicando a função de previsão a subconjuntos da série temporal, conforme ilustrado na figura abaixo. Os modelos utilizados para previsão são aqueles apresentados anteriormente: ARIMA, ARIMA com boxcox, ETS e ETS com box-cox. 
 
-```{r}
+![Janelas deslizantes](janela.png)
+
+```{r, echo = FALSE}
 # Definindo as funções de previsão:
 f_arima <- function(y, h){
-  fit = Arima(y, order=c(1,1,1), seasonal=c(1,0,1))
-  forecast(fit, h)
+  forecast(fit_arima, h)
 }
 f_arima_boxcox <- function(y, h){
-  fit = Arima(y, order=c(3,1,3), seasonal=c(1,0,1), lambda = "auto")
-  forecast(fit, h)
+  forecast(fit_arima_boxcox, h)
 }
 f_ets <- function(y, h){
-  fit = ets(y, model="MMM", dumped = FALSE)
-  forecast(fit, h)
+  forecast(fit_ets, h)
 }
 f_ets_boxcox <- function(y, h){
-  fit = ets(y, model="MAM", dumped = TRUE, lambda = "auto")
-  forecast(fit, h)
+  forecast(fit_ets_boxcox, h)
 }
 
 # Calculo dos erros de previsão com a janela flutuante
@@ -425,14 +390,37 @@ CV_ets = tsCV(y=serie,
               init = length(serie)-14)
 CV_ets_boxcox = tsCV(y=serie, 
                      forecastfunction=f_ets_boxcox, 
-                     h=5, 
+                     h=5,
                      init = length(serie)-14)
 
-CV_arima %>% round(2) %>% tail(20)
-CV_arima_boxcox %>% round(2)  %>% tail(20)
-CV_ets %>% round(2) %>% tail(20)
-CV_ets_boxcox %>% round(2) %>% tail(20)
+# Calculo da métrica de erro para cada horizonte de previsão
+# por erro absoluto médio (MAE)
+MAE_arima = CV_arima %>% abs() %>% colMeans(na.rm=T)
+MAE_arima_boxcox = CV_arima_boxcox %>% abs() %>% colMeans(na.rm=T)
+MAE_ets = CV_ets %>% abs() %>% colMeans(na.rm=T)
+MAE_ets_boxcox = CV_ets_boxcox %>% abs() %>% colMeans(na.rm=T)
+tab = cbind(MAE_arima, MAE_arima_boxcox, MAE_ets, MAE_ets_boxcox); 
 ```
+Para comparação dos resultados, foi calculado o erro absoluto médio (MAE) para horizonte de previsão.
+
+```{r, echo = FALSE}
+tab2 <- tab
+colnames(tab2) <- c('ARIMA', 'ARIMA Box-Cox', 'ETS', 'ETS Box-Cox')
+
+kableExtra::kable(tab2, 
+                  escape = F,align = "c",
+                  caption = "Erro absoluto médio") %>%
+  kableExtra::kable_styling(position = "center", 
+                            latex_options = "HOLD_position")
+```
+Percebe-se que o Erro Absoluto Médio apresentado pelo modelo ETS com transformação Box-Cox é muito superior aos demais. Para melhor compreensão do comportamento dos erros dos demais modelos, o gráfico abaixo ilustra os erros de cada modelo para os cinco horizonte de previsão:
+
+```{r, fig.align="center", fig.cap="Erros absolutos médios a cada horizonte de previsão", echo = FALSE}
+# Construir um gráfico com os horizontes no eixo x e a métrica no eixo y
+plot.ts(tab[,1:3], plot.type='s', col=1:5, lwd=c(2,2), xlab="h",ylab="MAE")
+legend(x=1,y=1200, legend=c("ARIMA", "ARIMA COM BOXCOX", "ETS"), col=1:5, lwd=c(2,2))
+```
+
 
 
 ### Resultados
