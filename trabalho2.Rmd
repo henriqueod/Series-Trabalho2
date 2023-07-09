@@ -261,39 +261,7 @@ model_ets = function(y,model,damped){
   )
 }
 
-for(comp_erro in componentes_erros){
-  for(comp_tend in componentes_tendencia){
-    for(comp_saz in componentes_sazonais){
-      for(damped in c(T,F)){
-        modelo = paste0(comp_erro,comp_tend,comp_saz)
-        print("------------")
-        print(modelo)
-        print("damped=")
-        print(damped)
-        modelo_ets = model_ets(serie, model=modelo, damped = damped)
-        print(modelo_ets['aicc'])
-      }
-    }
-  }
-}
 
-for(comp_erro in componentes_erros){
-  for(comp_tend in componentes_tendencia){
-    for(comp_saz in componentes_sazonais){
-      for(damped in c(T,F)){
-        modelo = paste0(comp_erro,comp_tend,comp_saz)
-        print("------------")
-        print(modelo)
-        print("damped=")
-        print(damped)
-        modelo_ets = model_ets(BoxCox(serie, 
-                                      lambda = BoxCox.lambda(serie)),
-                               model=modelo, damped = damped)
-        print(modelo_ets['aicc'])
-      }
-    }
-  }
-}
 fit_ets <- ets(serie, model = "MMM", damped = FALSE)
 fit_ets_boxcox <- ets(BoxCox(serie,lambda = BoxCox.lambda(serie)), model = "MMM", damped = FALSE)
 ```
