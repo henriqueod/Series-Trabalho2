@@ -218,18 +218,6 @@ Do resultado acima, não se pode rejeitar a hipótese de normalidade dos resídu
 shapiro.test(fit_arima$residuals)[[2]]
 ```
 
-
-## Previsões
-
-As previsões dos modelos:
-
-```{r, fig.align="center", fig.cap="Previsões dos modelos ARIMA", echo = FALSE}
-arima_layout <- layout(matrix(c(1,2),ncol=1), heights=c(20,20), TRUE)
-fit_arima %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,1)x(1,0,1)[12]", main = "")
-fit_arima_boxcox %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,1)x(1,0,1)[12] com Box-Cox", main = "")
-```
-
-
 # Modelos ETS
 
 O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. 
@@ -274,10 +262,13 @@ s_t &=s_{t-m} (1 + \gamma \epsilon_t)
 \end{aligned}
 $$
 
-```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
-plot(fit_ets, xlab = "Decomposição ETS")
-```
+A decomposição do modelo ETS "MMM" e do modelo ETS "MAM com Dumped" e transformação de Box-Cox são ilustrados abaixo.
 
+```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
+par(mfrow=c(1,2))
+plot(fit_ets, xlab = "Decomposição ETS")
+plot(fit_ets_boxcox, xlab = "Decomposição ETS com box-cox")
+```
 
 ## Resíduos
 
@@ -328,31 +319,8 @@ Observa-se que os resíduos parecem comportar-se de maneira aleatória, com dist
 | Ljung-Box | 25.522 | 0.038 | 41.505 | 0.003 |
 | Shapiro-Wilk | 0.98751 | 0.416 | 0.99443 | 0.944 |
 
-Agora analisando o modelo ETS(M,M,M), com a transformação boxcox, temos os seguintes resultados:
-
-
-
-```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS com boxcox", echo = FALSE}
-residuo_ets_boxcox <- fit_ets_boxcox$residuals
-par(mfrow=c(2,2)); 
-plot(residuo_ets_boxcox, xlab = "Tempo", ylab = "");
-acf(residuo_ets_boxcox, main="");
-pacf(residuo_ets_boxcox, main="");
-qqnorm(residuo_ets_boxcox, main="");qqline(residuo_ets_boxcox)
-
-```
-
 Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência em ambos os casos. 
 
-Uma previsão do modelo para 12 novos períodos é ilustrada abaixo:
-
-```{r, , fig.align="center", fig.cap="Previsão ETS", echo = FALSE}
-fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MMM'")
-```
-
-```{r, fig.align="center", fig.cap="Previsão ETS com transformação boxcox", echo = FALSE}
-fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MAM' com Dumped com transformação boxcox")
-```
 
 # Estudo de desempenho preditivo por janela deslizante
 
@@ -400,6 +368,8 @@ MAE_arima_boxcox = CV_arima_boxcox %>% abs() %>% colMeans(na.rm=T)
 MAE_ets = CV_ets %>% abs() %>% colMeans(na.rm=T)
 MAE_ets_boxcox = CV_ets_boxcox %>% abs() %>% colMeans(na.rm=T)
 tab = cbind(MAE_arima, MAE_arima_boxcox, MAE_ets, MAE_ets_boxcox); 
+
+
 ```
 Para comparação dos resultados, foi calculado o erro absoluto médio (MAE) para horizonte de previsão.
 
