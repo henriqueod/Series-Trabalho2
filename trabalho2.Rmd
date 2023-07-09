@@ -375,11 +375,12 @@ Para comparação dos resultados, foi calculado o erro absoluto médio (MAE) par
 tab2 <- tab
 colnames(tab2) <- c('ARIMA', 'ARIMA Box-Cox', 'ETS', 'ETS Box-Cox')
 
-kableExtra::kable(tab2, 
+kableExtra::kable(tab2 ,"latex", booktabs=T,
                   escape = F,align = "c",
                   caption = "Erro absoluto médio") %>%
   kableExtra::kable_styling(position = "center", 
-                            latex_options = "HOLD_position")
+                            latex_options = "HOLD_position") %>% 
+  kableExtra::row_spec(2:dim(tab2)[2], extra_css = "border-bottom-style: none")
 ```
 Percebe-se que o Erro Absoluto Médio apresentado pelo modelo ETS com transformação Box-Cox é muito superior aos demais. Para melhor compreensão do comportamento dos erros dos demais modelos, o gráfico abaixo ilustra compara os erros de cada modelo para os cinco horizonte de previsão com os erros de cada modelo, excluindo o modelo ETS com BoxCox:
 
@@ -393,7 +394,7 @@ legend(x=1,y=1200, legend=c("ARIMA", "ARIMA COM BOXCOX", "ETS", "ETS com BOXCOX"
 
 ### Resultados
 
-```{r}
+```{r, echo=F, warning=F}
 h = 5
 #comparar os 4 modelos com os modelos abaixo
 
@@ -402,7 +403,7 @@ dados_teste =  M3[[id]]$xx
 f_arima = fit_arima %>% forecast(h=h) %>% accuracy(dados_teste)
 f_arima_boxcox = fit_arima_boxcox %>% forecast(h=h) %>% accuracy(dados_teste)
 f_ets = fit_ets %>% forecast(h=h) %>% accuracy(dados_teste)
-f_ets_boxcox = fit_ets_boxcox %>% forecast(h=h) %>% accuracy(dados_teste)
+f_ets_boxcox = fit_ets_boxcox %>% forecast(h=h, lambda = lambda_boxcox) %>% accuracy(dados_teste)
 f_auto_arima = auto.arima(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
 f_ses = ses(serie, h=h)  %>% forecast(h=h) %>% accuracy(dados_teste)
 f_holt = holt(serie, h=h) %>% forecast(h=h) %>% accuracy(dados_teste)
@@ -411,28 +412,31 @@ f_stlf = stlf(serie, h=h) %>% forecast(h=h) %>% accuracy(dados_teste)
 f_bats = bats(serie) %>% forecast() %>% accuracy(dados_teste)
 f_tbats = tbats(serie) %>% forecast() %>% accuracy(dados_teste)
 
-acuracia <- rbind(f_arima[3],
-                  f_arima_boxcox[3],
-                  f_ets[3],
-                  f_ets_boxcox[3],
-                  f_auto_arima[3],
-                  f_ses[3],
-                  f_holt[3],
-                  f_auto_ets[3],
-                  f_stlf[3],
-                  f_bats[3],
-                  f_tbats[3])
+acuracia <- rbind(f_arima[2,3],
+                  f_arima_boxcox[2,3],
+                  f_ets[2,3],
+                  f_ets_boxcox[2,3],
+                  f_auto_arima[2,3],
+                  f_ses[2,3],
+                  f_holt[2,3],
+                  f_auto_ets[2,3],
+                  f_stlf[2,3],
+                  f_bats[2,3],
+                  f_tbats[2,3])
 
-modelos = c("arima","arima com boxcox","ets","ets com boxcox","auto arima","ses","holt","auto ets","stlf","bats","tbats")
+modelos = c("arima","arima com boxcox","ets",
+            "ets com boxcox","auto arima","ses",
+            "holt","auto ets","stlf","bats","tbats")
 
 resultados = cbind(modelos, round(acuracia,3))
 
-kableExtra::kable(resultados,
+kableExtra::kable(resultados,"latex", booktabs=T,
                   col.names = c("Modelos", "MAE"),
                   escape = F,align = "c",
                   caption = "Comparação do Erro absoluto médio com todos os modelos") %>%
   kableExtra::kable_styling(position = "center",
-                            latex_options = "HOLD_position")
+                            latex_options = "HOLD_position") %>% 
+  kableExtra::row_spec(2:11, extra_css = "border-bottom-style: none")
 ```
 
 
