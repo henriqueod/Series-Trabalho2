@@ -309,7 +309,6 @@ s_t &=s_{t-m} + \frac{\gamma \epsilon_t}{l_{t-1}b_{t-1}}
 \end{aligned}
 $$
 
-```
 
 
 
