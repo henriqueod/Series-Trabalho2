@@ -5,6 +5,7 @@ date: '2023-07-02'
 output: pdf_document
 header-includes:
  \usepackage{float}
+ \usepackage{booktabs}
 ---
 
 
@@ -181,7 +182,7 @@ qqnorm(fit_arima_boxcox$residuals, main="", xlab="")
 qqline(fit_arima_boxcox$residuals)
 ```
 
-Graficamente, observa-se que os resíduos de ambos os modelos parecem distribuir-se simetricamente ao retor da origem e não apresentam autocorrelações bem definidas. Precisa-se, entretanto, testá-los para estacionariedade, independência e distribuição normal. Essas hipóteses serão testadas conforme se segue.
+Graficamente, observa-se que os resíduos de ambos os modelos parecem distribuir-se simetricamente ao retor da origem e não apresentam autocorrelações bem definidas. Precisa-se, entretanto, testá-los para estacionariedade, independência e distribuição normal. Essas hipóteses serão testadas conforme se segue, todas assumindo nível de significância $\alpha = 0.05$.
 
 A estacionaridade será testada a partir do teste Kwiatkowski-Phillips-Schmidt-Shin (KPSS), com a hipótese nula de que a série é estacionária. O teste para o modelo $SARIMA(1,1,1) \times (1,0,1)_{12}$ e para o mesmo modelo, utilizando a transformação de Box-Cox:
 
@@ -202,7 +203,7 @@ O teste de independência dos resíduos é realizado a partir do teste Ljung-Box
 ```{r, include = FALSE}
 Box.test(fit_arima$residuals, lag = 15, type ="Ljung-Box")[[3]]
 ```
-Os resultados acima mostram que a independência dos resíduos pode ser rejeitada ao nível de significância de 5% em ambos os modelos. 
+Os resultados acima mostram que a independência dos resíduos não pode ser rejeitada ao nível de significância de 5% em ambos os modelos. 
 
 A normalidade dos resíduos é testada com o teste Shapiro-Wilk de Normalidade, com $H_0$ de que os resíduos apresentam distribuição normal. O valor do teste estatístico para os dois modelos trabalhados é:
 
@@ -211,7 +212,7 @@ A normalidade dos resíduos é testada com o teste Shapiro-Wilk de Normalidade, 
 | SARIMA sem Box-Cox | `r shapiro.test(fit_arima$residuals)[[1]]` | `r shapiro.test(fit_arima$residuals)[[2]]` |
 | SARIMA com Box-Cox | `r shapiro.test(fit_arima_boxcox$residuals)[[1]]` | `r shapiro.test(fit_arima_boxcox$residuals)[[2]]` |
 
-Do resultado acima, não se pode rejeitar a hipótese de normalidade dos resíduos de ambos os modelos. 
+Do resultado acima, não se pode rejeitar a hipótese de normalidade dos resíduos de ambos os modelos, com nível de significância de 5%. 
 
 ```{r, include = FALSE}
 shapiro.test(fit_arima$residuals)[[2]]
@@ -233,21 +234,53 @@ fit_arima_boxcox %>% forecast(h=24, level=c(80, 95)) %>% plot(xlab = "Arima(1,1,
 
 O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. 
 
-Os modelos que apresentam as características observadas na decomposição e seus respectivos AICcs estão representados na tabela abaixo:
+Os modelos que apresentam as características observadas na decomposição e seus respectivos AICcs, considerando um modelo não transformado e um modelo com transformação de Box-Cox, estão representados na tabela abaixo:
 
-| Modelo | AICc |
-|---|:---:|
-| AAA | 1950.568 |
-| AAA Dumped | 1953.429 |
-| MAA | 1947.757 |
-| MAA Dumped | 1942.956 |
-| MAM | 1925.053 |
-| MAM Dumped | 1928.537 |
-| MMM | 1923.268 |
-| MMM Dumped | 1928.128 |
+| Parâmetros | AICc Modelo sem Box-Cox | AICc Modelo com Box-Cox |
+|:---:|:---:|:---:|
+| AAA | 1950.568 | 290.3203 |
+| AAA Dumped | 1953.429 | 295.7952 |
+| MAA | 1947.757 | 288.9366 |
+| MAA Dumped | 1942.956 | 297.1602 |
+| MAM | 1925.053 | 292.4207 |
+| MAM Dumped | 1928.537 | 291.7428 |
+| MMM | 1923.268 | 300.8768 |
+| MMM Dumped | 1928.128 | 293.2297 |
 
-O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo é o "MMM", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. 
+O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo, para o modelo não transformado é o "*MMM*", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. Já para o modelo com transformação de Box-Cox, o modelo com menor AICc é o "*MAM*" *com dumped*. 
+```{r, include = FALSE}
+fit_ets <- ets(serie, model = "MMM", damped = FALSE)
+fit_ets_boxcox <- ets(BoxCox(serie,lambda = BoxCox.lambda(serie)), model = "MAM", damped = TRUE)
+```
 
+O modelo selecionado sem transformação apresenta a seguinte estrutura:
+
+$$
+\begin{aligned}
+\mu_t &= l_{t-1} b_{t-1}s_{t-m}\\
+l_t &= l_{t-1}b_{t-1}+\frac{\alpha \epsilon_t}{s_{t-m}}\\
+b_t &=b_{t-1}+\frac{\beta \epsilon_t}{s_{t-m}l_{t-1}} \\
+s_t &=s_{t-m} + \frac{\gamma \epsilon_t}{l_{t-1}b_{t-1}}
+\end{aligned}
+$$
+Enquanto o modelo selecionado para o conjunto de dados transformados por Box-Cox tem a seguinte estrutura:
+
+$$
+\begin{aligned}
+\mu_t &= (l_{t-1} + \phi b_{t-1})s_{t-m}\\
+l_t &= (l_{t-1} + \phi b_{t-1})(1+\alpha \epsilon_t)\\
+b_t &=\phi  b_{t-1}+\beta (l_{t-1} + \phi b_{t-1})\epsilon_t  \\
+s_t &=s_{t-m} (1 + \gamma \epsilon_t)
+\end{aligned}
+$$
+
+```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
+plot(fit_ets, xlab = "Decomposição ETS")
+```
+
+Utilizando o modelo ETS com uma transformação do tipo Box-Cox
+
+```{r}
 ```{r, include = FALSE}
 componentes_tendencia = c("A","M")
 componentes_sazonais = c("A","M")
@@ -255,7 +288,7 @@ componentes_erros = c("A","M")
 
 model_ets = function(y,model,damped){
   tryCatch({
-    ets(y,model,damped)
+    ets(y,model,damped, lambda = "auto")
   },
   error=function(cond)print('nao pode')
   )
@@ -276,39 +309,58 @@ s_t &=s_{t-m} + \frac{\gamma \epsilon_t}{l_{t-1}b_{t-1}}
 \end{aligned}
 $$
 
-```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
-plot(fit_ets, xlab = "Decomposição ETS")
 ```
+
 
 
 ## Resíduos
 
-Os resíduos do modelo ETS selecionado são ilustrados na figura a seguir:
+Os resíduos do modelo ETS sem transformação selecionado são ilustrados na figura a seguir:
 
 ```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS", echo = FALSE}
 residuo_ets <- fit_ets$residuals
 par(mfrow=c(2,2)); 
-plot(residuo_ets, xlab = "Tempo", ylab = "");
-acf(residuo_ets, main="");
-pacf(residuo_ets, main="");
-qqnorm(residuo_ets, main="");qqline(residuo_ets)
+plot(residuo_ets, xlab = "Resíduos", ylab = "");
+acf(residuo_ets, main="", ylab="", xlab="ACF");
+pacf(residuo_ets, main="", ylab="", xlab="PACF");
+qqnorm(residuo_ets, main="", xlab = "Gráfico QQ", ylab="");qqline(residuo_ets)
 ```
+Enquanto os gráficos para o modelo ETS selecionado usando tranformação de Box-Cox são ilustrados abaixo:
+
+
+```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS do modelo com Box-Cox", echo = FALSE}
+residuo_ets_boxcox <- fit_ets_boxcox$residuals
+par(mfrow=c(2,2)); 
+plot(residuo_ets_boxcox, xlab = "Resíduos", ylab = "");
+acf(residuo_ets_boxcox, main="", ylab="", xlab="ACF");
+pacf(residuo_ets_boxcox, main="", ylab="", xlab="PACF");
+qqnorm(residuo_ets_boxcox, main="", xlab = "Gráfico QQ", ylab="");qqline(residuo_ets_boxcox)
+```
+
 
 
 ```{r, include = FALSE}
 kpss_ets = kpss.test(residuo_ets)
-box_ets = Box.test(residuo_ets, lag = 15, type ="Ljung-Box")
+box_ets = Box.test(residuo_ets, lag = 20, type ="Ljung-Box")
 shap_ets = shapiro.test(residuo_ets)
+kpss_ets_boxcox = kpss.test(residuo_ets_boxcox)
+box_ets_boxcox = Box.test(residuo_ets_boxcox, lag = 20, type ="Ljung-Box")
+shap_ets_boxcox = shapiro.test(residuo_ets_boxcox)
+kpss_ets
+kpss_ets_boxcox
+box_ets
+box_ets_boxcox
+shap_ets
+shap_ets_boxcox
 ```
 
 Observa-se que os resíduos parecem comportar-se de maneira aleatória, com distribuição normal e sem autocorrelações importantes entre diferentes intervalos. Os testes formais encontram-se na tabela abaixo, a exemplo do anteriormente realizado:
 
-| Teste | Valor do teste | P-valor |
-|---|---|:---:|
-| KPSS | `r round(kpss_ets$statistic,3)` | `r round(kpss_ets$p.value,3)` |
-| Box-Ljung | `r round(box_ets$statistic,3)` | `r round(box_ets$p.value,3)` |
-| Shapiro-Wilk | `r round(shap_ets$statistic,3)` | `r round(shap_ets$p.value,3)` |
-
+| Teste | MMM sem dumped | p-valor | MAM com dumped Box-Cox | p-valor |
+|:---:|:---:|---|:---:|---|
+| KPSS | 0.12301 | 0.1 | 0.2145 | 0.1 |
+| Ljung-Box | 25.522 | 0.038 | 41.505 | 0.003 |
+| Shapiro-Wilk | 0.98751 | 0.416 | 0.99443 | 0.944 |
 
 Agora analisando o modelo ETS(M,M,M), com a transformação boxcox, temos os seguintes resultados:
 
@@ -324,19 +376,7 @@ qqnorm(residuo_ets_boxcox, main="");qqline(residuo_ets_boxcox)
 
 ```
 
-Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência.
-
-```{r, include = FALSE}
-kpss_ets_boxcox = kpss.test(residuo_ets_boxcox)
-box_ets_boxcox  = Box.test(residuo_ets_boxcox, lag = 15, type ="Ljung-Box")
-shap_ets_boxcox = shapiro.test(residuo_ets_boxcox)
-```
-
-| Teste | Valor do teste | P-valor |
-|---|---|:---:|
-| KPSS | `r round(kpss_ets_boxcox$statistic,3)` | `r round(kpss_ets_boxcox$p.value,3)` |
-| Box-Ljung | `r round(box_ets_boxcox$statistic,3)` | `r round(box_ets_boxcox$p.value,3)` |
-| Shapiro-Wilk | `r round(shap_ets_boxcox$statistic,3)` | `r round(shap_ets_boxcox$p.value,3)` |
+Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência em ambos os casos. 
 
 Uma previsão do modelo para 12 novos períodos é ilustrada abaixo:
 
@@ -345,8 +385,56 @@ fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MMM'")
 ```
 
 ```{r, , fig.align="center", fig.cap="Previsão ETS com transformação boxcox", echo = FALSE}
-fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MMM' com transformação boxcox")
+fit_ets %>% forecast(h=12) %>% plot(main="Previsão ETS 'MAM' com Dumped com transformação boxcox")
 ```
+
+# Estudo de desempenho preditivo por janela deslizante
+
+Considerante os dois modelos ARIMA e os dois modelos ETS anteriormente escolhidos, será realizado um estudo de desempenho preditivo por janela deslizante para a série M3 com ID `r id` em n-14 e considerando um horizonte de até 5 meses a frente. 
+
+```{r}
+# Definindo as funções de previsão:
+f_arima <- function(y, h){
+  fit = Arima(y, order=c(1,1,1), seasonal=c(1,0,1))
+  forecast(fit, h)
+}
+f_arima_boxcox <- function(y, h){
+  fit = Arima(y, order=c(3,1,3), seasonal=c(1,0,1), lambda = "auto")
+  forecast(fit, h)
+}
+f_ets <- function(y, h){
+  fit = ets(y, model="MMM", dumped = FALSE)
+  forecast(fit, h)
+}
+f_ets_boxcox <- function(y, h){
+  fit = ets(y, model="MAM", dumped = TRUE, lambda = "auto")
+  forecast(fit, h)
+}
+
+# Calculo dos erros de previsão com a janela flutuante
+CV_arima = tsCV(y=serie, 
+                forecastfunction=f_arima, 
+                h=5, 
+                init = length(serie)-14)
+CV_arima_boxcox = tsCV(y=serie, 
+                       forecastfunction=f_arima_boxcox, 
+                       h=5, 
+                       init = length(serie)-14)
+CV_ets = tsCV(y=serie, 
+              forecastfunction=f_ets, 
+              h=5, 
+              init = length(serie)-14)
+CV_ets_boxcox = tsCV(y=serie, 
+                     forecastfunction=f_ets_boxcox, 
+                     h=5, 
+                     init = length(serie)-14)
+
+CV_arima %>% round(2) %>% tail(20)
+CV_arima_boxcox %>% round(2)  %>% tail(20)
+CV_ets %>% round(2) %>% tail(20)
+CV_ets_boxcox %>% round(2) %>% tail(20)
+```
+
 
 ### Resultados
 
