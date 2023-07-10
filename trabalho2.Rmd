@@ -220,9 +220,69 @@ shapiro.test(fit_arima$residuals)[[2]]
 
 # Modelos ETS
 
-O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. 
+O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. Quando transformada, será utilizado o parâmetro $\lambda = `r BoxCox.lambda(serie)`$.
 
 Os modelos que apresentam as características observadas na decomposição e seus respectivos AICcs, considerando um modelo não transformado e um modelo com transformação de Box-Cox, estão representados na tabela abaixo:
+
+
+```{r, include = FALSE}
+BoxCox.lambda(serie)
+
+
+componentes_tendencia = c("A","M")
+componentes_sazonais = c("A","M")
+componentes_erros = c("A","M")
+
+model_ets = function(y,model,damped,lambda){
+  tryCatch({
+    ets(y,model,damped,lambda)
+  },
+  error=function(cond)print('nao pode')
+  )
+}
+
+# Modelos sem BoxCox
+for(comp_erro in componentes_erros){
+  for(comp_tend in componentes_tendencia){
+    for(comp_saz in componentes_sazonais){
+      for(damped in c(T,F)){
+        modelo = paste0(comp_erro,comp_tend,comp_saz)
+        print("------------")
+        print(modelo)
+        print("damped=")
+        print(damped)
+        modelo_ets = model_ets(y = serie,
+                               model = modelo,
+                               damped = damped, 
+                               lambda = "NULL")
+        print(modelo_ets['aicc'])
+      }
+    }
+  }
+}
+
+# Para modelos com BoxCox
+for(comp_erro in componentes_erros){
+  for(comp_tend in componentes_tendencia){
+    for(comp_saz in componentes_sazonais){
+      for(damped in c(T,F)){
+        modelo = paste0(comp_erro,comp_tend,comp_saz)
+        print("------------")
+        print(modelo)
+        print("damped=")
+        print(damped)
+        modelo_ets = model_ets(y = serie,
+                               model = modelo, 
+                               damped = damped,
+                               lambda = "auto")
+        print(modelo_ets['aicc'])
+      }
+    }
+  }
+}
+
+```
+
 
 | Parâmetros | AICc Modelo sem Box-Cox | AICc Modelo com Box-Cox |
 |:---:|:---:|:---:|
