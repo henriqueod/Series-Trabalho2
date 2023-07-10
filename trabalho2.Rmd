@@ -237,9 +237,10 @@ model_ets = function(y,model,damped,lambda){
     ets(y,model,damped,lambda)
   },
   error=function(cond) {
+    print(paste0("Lambda: ",lambda))
     print("Não pode. Motivo:")
     message(cond)
-  }
+    }
   )
 }
 
@@ -249,9 +250,9 @@ for(comp_erro in componentes_erros){
     for(comp_saz in componentes_sazonais){
       for(damped in c(T,F)){
         modelo = paste0(comp_erro,comp_tend,comp_saz)
-        print("------------")
-        print(modelo)
-        print(paste0("damped=", damped))
+        print("------------------------------")
+        print(paste0("Modelo: ", modelo))
+        print(paste0("Damped: ", damped))
         modelo_ets = model_ets(y = serie,
                                model = modelo,
                                damped = damped, 
@@ -262,15 +263,14 @@ for(comp_erro in componentes_erros){
   }
 }
 
-# Para modelos com BoxCox
+# Modelos com BoxCox
 for(comp_erro in componentes_erros){
   for(comp_tend in componentes_tendencia){
     for(comp_saz in componentes_sazonais){
       for(damped in c(T,F)){
         modelo = paste0(comp_erro,comp_tend,comp_saz)
-        print("------------")
-        print(modelo)
-        print(paste0("damped=", damped))
+        print(paste0("Modelo: ", modelo))
+        print(paste0("Damped: ", damped))
         modelo_ets = model_ets(y = serie,
                                model = modelo,
                                damped = damped, 
@@ -281,7 +281,9 @@ for(comp_erro in componentes_erros){
   }
 }
 
-ets(serie,"AAA",damped = TRUE, lambda = "auto")
+
+teste <- ets(serie,"AAA",damped = TRUE, lambda = "auto")
+teste$call
 ```
 
 
