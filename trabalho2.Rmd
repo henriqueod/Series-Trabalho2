@@ -151,7 +151,6 @@ for (P in 0:1) {
 Para a série transformada, temos que o menor nível de AICc foi encontrado com os parâmetros $p = 3$, $q = 3$, $P = 1$ e $Q = 1$, cujo modelo pode ser descrito por $SARIMA(3,1,3) \times (1,0,1)_{12}$, com coeficientes iguais a: 
 
 ```{r, include = FALSE}
-lambda_boxcox = BoxCox.lambda(serie)
 fit_arima_boxcox = Arima(serie,order=c(3,1,3),seasonal=c(1,0,1), lambda = "auto")
 fit_arima_boxcox
 ```
@@ -237,7 +236,10 @@ model_ets = function(y,model,damped,lambda){
   tryCatch({
     ets(y,model,damped,lambda)
   },
-  error=function(cond)print('nao pode')
+  error=function(cond) {
+    print("Não pode. Motivo:")
+    message(cond)
+  }
   )
 }
 
@@ -249,12 +251,11 @@ for(comp_erro in componentes_erros){
         modelo = paste0(comp_erro,comp_tend,comp_saz)
         print("------------")
         print(modelo)
-        print("damped=")
-        print(damped)
+        print(paste0("damped=", damped))
         modelo_ets = model_ets(y = serie,
                                model = modelo,
                                damped = damped, 
-                               lambda = "NULL")
+                               lambda = NULL)
         print(modelo_ets['aicc'])
       }
     }
@@ -269,11 +270,10 @@ for(comp_erro in componentes_erros){
         modelo = paste0(comp_erro,comp_tend,comp_saz)
         print("------------")
         print(modelo)
-        print("damped=")
-        print(damped)
+        print(paste0("damped=", damped))
         modelo_ets = model_ets(y = serie,
-                               model = modelo, 
-                               damped = damped,
+                               model = modelo,
+                               damped = damped, 
                                lambda = "auto")
         print(modelo_ets['aicc'])
       }
@@ -281,6 +281,7 @@ for(comp_erro in componentes_erros){
   }
 }
 
+ets(serie,"AAA",damped = TRUE, lambda = "auto")
 ```
 
 
