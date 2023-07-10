@@ -382,7 +382,7 @@ kableExtra::kable(tab2 ,"latex", booktabs=T,
                             latex_options = "HOLD_position") %>% 
   kableExtra::row_spec(2:dim(tab2)[2], extra_css = "border-bottom-style: none")
 ```
-Percebe-se que o Erro Absoluto Médio apresentado pelo modelo ETS com transformação Box-Cox é muito superior aos demais. Para melhor compreensão do comportamento dos erros dos demais modelos, o gráfico abaixo ilustra compara os erros de cada modelo para os cinco horizonte de previsão com os erros de cada modelo, excluindo o modelo ETS com BoxCox:
+
 
 ```{r, fig.align="center", fig.cap="Erros absolutos médios a cada horizonte de previsão", echo = FALSE}
 # Construir um gráfico com os horizontes no eixo x e a métrica no eixo y
@@ -392,7 +392,9 @@ legend(x=1,y=1200, legend=c("ARIMA", "ARIMA COM BOXCOX", "ETS", "ETS com BOXCOX"
 
 
 
-### Resultados
+# Resultados
+
+Comparando os 4 modelos estimados anteriormente com os seguintes modelos: Auto Arima, SES, Holt, Auto ETS, STLF, Bats, Tbats, temos os seguintes da métrica MAE, no conjunto de testes:
 
 ```{r, echo=F, warning=F}
 h = 5
@@ -424,9 +426,9 @@ acuracia <- rbind(f_arima[2,3],
                   f_bats[2,3],
                   f_tbats[2,3])
 
-modelos = c("arima","arima com boxcox","ets",
-            "ets com boxcox","auto arima","ses",
-            "holt","auto ets","stlf","bats","tbats")
+modelos = c("Arima","Arima com boxcox","ETS",
+            "ETS com boxcox","Auto Arima","SES",
+            "Holt","Auto ETS","STLF","Bats","Tbats")
 
 resultados = cbind(modelos, round(acuracia,3))
 
@@ -439,4 +441,5 @@ kableExtra::kable(resultados,"latex", booktabs=T,
   kableExtra::row_spec(2:11, extra_css = "border-bottom-style: none")
 ```
 
-
+O modelo ETS(M,M,M) foi o que obteve o menor MAE no conjunto de teste, apresentando um valor igual a 
+`r round(f_ets[2,3],3)`.
