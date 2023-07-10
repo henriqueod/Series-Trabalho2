@@ -326,7 +326,7 @@ Os resultados acima apresentados sugerem que os resíduos do modelo são estacio
 
 Considerante os dois modelos ARIMA e os dois modelos ETS anteriormente escolhidos, será realizado um estudo de desempenho preditivo por janela deslizante para a série M3 com ID `r id` com conjunto de treino consistindo nos últimos 14 períodos e considerando um horizonte preditivo de até 5 meses a frente. Para tal será utilizado a função tsCV, que calcula os erros de previsão obtidos aplicando a função de previsão a subconjuntos da série temporal, conforme ilustrado na figura abaixo. Os modelos utilizados para previsão são aqueles apresentados anteriormente: ARIMA, ARIMA com boxcox, ETS e ETS com box-cox. 
 
-![Janelas deslizantes](janela.png)
+![Janelas deslizantes](janela2.png)
 
 ```{r, echo = FALSE}
 # Definindo as funções de previsão:
