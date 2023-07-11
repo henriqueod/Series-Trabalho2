@@ -28,7 +28,7 @@ knitr::opts_chunk$set(fig.pos = 'H')
 A série analisada consiste na série número `r id` pertencente ao banco de dados da competição de previsão M3, disponível no pacote *Mcomp* do software R. A série descreve o número de carregamentos com código _TD-AUTOUNITS_, mensalmente, de outubro de 1984 a setembro de 1993. 
 
 ```{r, fig.align="center",fig.cap='Comportamento da série ao longo do tempo',echo=FALSE}
-M3[[id]] %>% plot(xlab="Ano", ylab="n.º de carregamentos")
+M3[[id]] %>% plot(xlab="Ano", ylab="N de carregamentos")
 ```
 
 # Decomposição MSTL
@@ -151,7 +151,6 @@ for (P in 0:1) {
 Para a série transformada, temos que o menor nível de AICc foi encontrado com os parâmetros $p = 3$, $q = 3$, $P = 1$ e $Q = 1$, cujo modelo pode ser descrito por $SARIMA(3,1,3) \times (1,0,1)_{12}$, com coeficientes iguais a: 
 
 ```{r, include = FALSE}
-lambda_boxcox = BoxCox.lambda(serie)
 fit_arima_boxcox = Arima(serie,order=c(3,1,3),seasonal=c(1,0,1), lambda = "auto")
 fit_arima_boxcox
 ```
@@ -220,25 +219,82 @@ shapiro.test(fit_arima$residuals)[[2]]
 
 # Modelos ETS
 
-O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. 
+O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. Quando transformada, será utilizado o parâmetro $\lambda = `r BoxCox.lambda(serie)`$.
 
 Os modelos que apresentam as características observadas na decomposição e seus respectivos AICcs, considerando um modelo não transformado e um modelo com transformação de Box-Cox, estão representados na tabela abaixo:
+
+
+```{r, include = FALSE}
+componentes_tendencia = c("A","M")
+componentes_sazonais = c("A","M")
+componentes_erros = c("A","M")
+
+model_ets = function(y,model,damped,lambda){
+  tryCatch({
+    ets(y,model=model,damped=damped, lambda=lambda)
+  },
+  error=function(cond)print('nao pode')
+  )
+}
+
+# Modelos sem BoxCox
+for(comp_erro in componentes_erros){
+  for(comp_tend in componentes_tendencia){
+    for(comp_saz in componentes_sazonais){
+      for(damped in c(T,F)){
+        modelo = paste0(comp_erro,comp_tend,comp_saz)
+        print("------------------------------")
+        print(paste0("Modelo: ", modelo))
+        print(paste0("Damped: ", damped))
+        modelo_ets = model_ets(y = serie,
+                               model = modelo,
+                               damped = damped, 
+                               lambda = NULL)
+        print(modelo_ets['aicc'])
+      }
+    }
+  }
+}
+
+# Modelos com BoxCox
+lambda = BoxCox.lambda(serie)
+for(comp_erro in componentes_erros){
+  for(comp_tend in componentes_tendencia){
+    for(comp_saz in componentes_sazonais){
+      for(damped in c(T,F)){
+        modelo = paste0(comp_erro,comp_tend,comp_saz)
+        print("------------------------------")
+        print(paste0("Modelo: ", modelo))
+        print(paste0("Damped: ", damped))
+        modelo_ets = model_ets(y = serie,
+                               model = modelo,
+                               damped = damped, 
+                               lambda = lambda)
+        print(modelo_ets['aicc'])
+      }
+    }
+  }
+}
+
+
+```
+
 
 | Parâmetros | AICc Modelo sem Box-Cox | AICc Modelo com Box-Cox |
 |:---:|:---:|:---:|
 | AAA | 1950.568 | 290.3203 |
 | AAA Dumped | 1953.429 | 295.7952 |
-| MAA | 1947.757 | 288.9366 |
-| MAA Dumped | 1942.956 | 297.1602 |
-| MAM | 1925.053 | 292.4207 |
-| MAM Dumped | 1928.537 | 291.7428 |
-| MMM | 1923.268 | 300.8768 |
-| MMM Dumped | 1928.128 | 293.2297 |
+| MAA | 1947.757 | Combinação não possível |
+| MAA Dumped | 1942.956 | Combinação não possível |
+| MAM | 1925.053 | Combinação não possível |
+| MAM Dumped | 1928.537 | Combinação não possível |
+| MMM | 1923.268 | Combinação não possível |
+| MMM Dumped | 1928.128 | Combinação não possível |
 
 O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo, para o modelo não transformado é o "*MMM*", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. Já para o modelo com transformação de Box-Cox, o modelo com menor AICc é o "*MAM*" *com dumped*. 
 ```{r, include = FALSE}
 fit_ets <- ets(serie, model = "MMM", damped = FALSE)
-fit_ets_boxcox <- ets(serie,lambda = "auto", model = "MAM", damped = T)
+fit_ets_boxcox <- ets(serie, model = "AAA", damped = FALSE, lambda = lambda)
 ```
 
 O modelo selecionado sem transformação apresenta a seguinte estrutura:
@@ -253,6 +309,7 @@ s_t &=s_{t-m} + \frac{\gamma \epsilon_t}{l_{t-1}b_{t-1}}
 $$
 Enquanto o modelo selecionado para o conjunto de dados transformados por Box-Cox tem a seguinte estrutura:
 
+# TEM QUE MUDAR ISSO AQUI!
 $$
 \begin{aligned}
 \mu_t &= (l_{t-1} + \phi b_{t-1})s_{t-m}\\
@@ -262,7 +319,7 @@ s_t &=s_{t-m} (1 + \gamma \epsilon_t)
 \end{aligned}
 $$
 
-A decomposição do modelo ETS "MMM" e do modelo ETS "MAM com Dumped" e transformação de Box-Cox são ilustrados abaixo.
+A decomposição do modelo ETS "MMM" e do modelo ETS "AAA com Dumped" e transformação de Box-Cox são ilustrados abaixo.
 
 ```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
 par(mfrow=c(1,2))
@@ -298,10 +355,10 @@ qqnorm(residuo_ets_boxcox, main="", xlab = "Gráfico QQ", ylab="");qqline(residu
 
 ```{r, include = FALSE}
 kpss_ets = kpss.test(residuo_ets)
-box_ets = Box.test(residuo_ets, lag = 20, type ="Ljung-Box")
+box_ets = Box.test(residuo_ets, lag = 15, type ="Ljung-Box")
 shap_ets = shapiro.test(residuo_ets)
 kpss_ets_boxcox = kpss.test(residuo_ets_boxcox)
-box_ets_boxcox = Box.test(residuo_ets_boxcox, lag = 20, type ="Ljung-Box")
+box_ets_boxcox = Box.test(residuo_ets_boxcox, lag = 15, type ="Ljung-Box")
 shap_ets_boxcox = shapiro.test(residuo_ets_boxcox)
 kpss_ets
 kpss_ets_boxcox
@@ -313,11 +370,11 @@ shap_ets_boxcox
 
 Observa-se que os resíduos parecem comportar-se de maneira aleatória, com distribuição normal e sem autocorrelações importantes entre diferentes intervalos. Os testes formais encontram-se na tabela abaixo, a exemplo do anteriormente realizado:
 
-| Teste | MMM sem dumped | p-valor | MAM com dumped Box-Cox | p-valor |
+| Teste | MMM sem dumped | p-valor | AAA com dumped Box-Cox | p-valor |
 |:---:|:---:|---|:---:|---|
-| KPSS | 0.12301 | 0.1 | 0.2145 | 0.1 |
-| Ljung-Box | 25.522 | 0.038 | 41.505 | 0.003 |
-| Shapiro-Wilk | 0.98751 | 0.416 | 0.99443 | 0.944 |
+| KPSS | 0.12301 | 0.1 | 0.12936 | 0.1 |
+| Ljung-Box | 25.522 | 0.043 | 31.196 | 0.008 |
+| Shapiro-Wilk | 0.98751 | 0.416 | 0.99329 | 0.8794 |
 
 Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência em ambos os casos. 
 
@@ -334,13 +391,13 @@ f_arima <- function(y, h){
   forecast(fit_arima, h)
 }
 f_arima_boxcox <- function(y, h){
-  forecast(fit_arima_boxcox, h,lambda = lambda_boxcox)
+  forecast(fit_arima_boxcox, h,lambda = lambda)
 }
 f_ets <- function(y, h){
   forecast(fit_ets, h)
 }
 f_ets_boxcox <- function(y, h){
-  forecast(fit_ets_boxcox, h, lambda = lambda_boxcox)
+  forecast(fit_ets_boxcox, h, lambda = lambda)
 }
 
 # Calculo dos erros de previsão com a janela flutuante
@@ -360,6 +417,7 @@ CV_ets_boxcox = tsCV(y=serie,
                      forecastfunction=f_ets_boxcox, 
                      h=5,
                      init = length(serie)-14)
+
 
 # Calculo da métrica de erro para cada horizonte de previsão
 # por erro absoluto médio (MAE)
@@ -408,6 +466,15 @@ ets(serie,model="MAM",lambda = "auto")
 ```
 
 
+```{r}
+h=5
+plot(f_arima(serie,h), main="Modelo ARIMA(1,1,1)(1,0,1)[12]")
+plot(f_arima_boxcox(serie,h), main="Modelo ARIMA(1,1,1)(1,0,1)[12] com transformação")
+plot(f_ets(serie,h), main="Modelo ETS(M,M,M)")
+plot(f_ets_boxcox(serie,h), main="Modelo ETS(A,A,A) com transformação")
+```
+
+
 Comparando os 4 modelos estimados anteriormente com os seguintes modelos: Auto Arima, SES, Holt, Auto ETS, STLF, Bats, Tbats, temos os seguintes da métrica MAE, no conjunto de testes:
 
 ```{r, echo=F, warning=F}
@@ -419,7 +486,7 @@ dados_teste =  M3[[id]]$xx
 f_arima = fit_arima %>% forecast(h=h) %>% accuracy(dados_teste)
 f_arima_boxcox = fit_arima_boxcox %>% forecast(h=h) %>% accuracy(dados_teste)
 f_ets = fit_ets %>% forecast(h=h) %>% accuracy(dados_teste)
-f_ets_boxcox = fit_ets_boxcox %>% forecast(h=h, lambda = lambda_boxcox) %>% accuracy(dados_teste)
+f_ets_boxcox = fit_ets_boxcox %>% forecast(h=h, lambda = lambda) %>% accuracy(dados_teste)
 f_auto_arima = auto.arima(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
 f_ses = ses(serie, h=h)  %>% forecast(h=h) %>% accuracy(dados_teste)
 f_holt = holt(serie, h=h) %>% forecast(h=h) %>% accuracy(dados_teste)
