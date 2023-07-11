@@ -28,7 +28,7 @@ knitr::opts_chunk$set(fig.pos = 'H')
 A série analisada consiste na série número `r id` pertencente ao banco de dados da competição de previsão M3, disponível no pacote *Mcomp* do software R. A série descreve o número de carregamentos com código _TD-AUTOUNITS_, mensalmente, de outubro de 1984 a setembro de 1993. 
 
 ```{r, fig.align="center",fig.cap='Comportamento da série ao longo do tempo',echo=FALSE}
-M3[[id]] %>% plot(xlab="Ano", ylab="n.º de carregamentos")
+M3[[id]] %>% plot(xlab="Ano", ylab="N de carregamentos")
 ```
 
 # Decomposição MSTL
@@ -391,13 +391,13 @@ f_arima <- function(y, h){
   forecast(fit_arima, h)
 }
 f_arima_boxcox <- function(y, h){
-  forecast(fit_arima_boxcox, h,lambda = lambda_boxcox)
+  forecast(fit_arima_boxcox, h,lambda = lambda)
 }
 f_ets <- function(y, h){
   forecast(fit_ets, h)
 }
 f_ets_boxcox <- function(y, h){
-  forecast(fit_ets_boxcox, h, lambda = lambda_boxcox)
+  forecast(fit_ets_boxcox, h, lambda = lambda)
 }
 
 # Calculo dos erros de previsão com a janela flutuante
@@ -417,6 +417,8 @@ CV_ets_boxcox = tsCV(y=serie,
                      forecastfunction=f_ets_boxcox, 
                      h=5,
                      init = length(serie)-14)
+
+setwd("D:/materias/series/Series-Trabalho2")
 
 # Calculo da métrica de erro para cada horizonte de previsão
 # por erro absoluto médio (MAE)
@@ -451,6 +453,15 @@ legend(x=1,y=1200, legend=c("ARIMA", "ARIMA COM BOXCOX", "ETS", "ETS com BOXCOX"
 
 # Resultados
 
+```{r}
+h=5
+plot(f_arima(serie,h), main="Modelo ARIMA(1,1,1)(1,0,1)[12]")
+plot(f_arima_boxcox(serie,h), main="Modelo ARIMA(1,1,1)(1,0,1)[12] com transformação")
+plot(f_ets(serie,h), main="Modelo ETS(M,M,M)")
+plot(f_ets_boxcox(serie,h), main="Modelo ETS(A,A,A) com transformação")
+```
+
+
 Comparando os 4 modelos estimados anteriormente com os seguintes modelos: Auto Arima, SES, Holt, Auto ETS, STLF, Bats, Tbats, temos os seguintes da métrica MAE, no conjunto de testes:
 
 ```{r, echo=F, warning=F}
@@ -462,7 +473,7 @@ dados_teste =  M3[[id]]$xx
 f_arima = fit_arima %>% forecast(h=h) %>% accuracy(dados_teste)
 f_arima_boxcox = fit_arima_boxcox %>% forecast(h=h) %>% accuracy(dados_teste)
 f_ets = fit_ets %>% forecast(h=h) %>% accuracy(dados_teste)
-f_ets_boxcox = fit_ets_boxcox %>% forecast(h=h, lambda = lambda_boxcox) %>% accuracy(dados_teste)
+f_ets_boxcox = fit_ets_boxcox %>% forecast(h=h, lambda = lambda) %>% accuracy(dados_teste)
 f_auto_arima = auto.arima(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
 f_ses = ses(serie, h=h)  %>% forecast(h=h) %>% accuracy(dados_teste)
 f_holt = holt(serie, h=h) %>% forecast(h=h) %>% accuracy(dados_teste)
