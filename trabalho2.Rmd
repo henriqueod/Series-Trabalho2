@@ -238,7 +238,7 @@ Os modelos que apresentam as características observadas na decomposição e seu
 O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo, para o modelo não transformado é o "*MMM*", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. Já para o modelo com transformação de Box-Cox, o modelo com menor AICc é o "*MAM*" *com dumped*. 
 ```{r, include = FALSE}
 fit_ets <- ets(serie, model = "MMM", damped = FALSE)
-fit_ets_boxcox <- ets(BoxCox(serie,lambda=lambda_boxcox), model = "MAM", damped = T)
+fit_ets_boxcox <- ets(serie,lambda = "auto", model = "MAM", damped = T)
 ```
 
 O modelo selecionado sem transformação apresenta a seguinte estrutura:
@@ -324,7 +324,7 @@ Os resultados acima apresentados sugerem que os resíduos do modelo são estacio
 
 # Estudo de desempenho preditivo por janela deslizante
 
-Considerante os dois modelos ARIMA e os dois modelos ETS anteriormente escolhidos, será realizado um estudo de desempenho preditivo por janela deslizante para a série M3 com ID `r id` com conjunto de treino consistindo nos últimos 14 períodos e considerando um horizonte preditivo de até 5 meses a frente. Para tal será utilizado a função tsCV, que calcula os erros de previsão obtidos aplicando a função de previsão a subconjuntos da série temporal, conforme ilustrado na figura abaixo. Os modelos utilizados para previsão são aqueles apresentados anteriormente: ARIMA, ARIMA com boxcox, ETS e ETS com box-cox. 
+Considerante os dois modelos ARIMA e os dois modelos ETS anteriormente escolhidos, será realizado um estudo de desempenho preditivo por janela deslizante para a série M3 com ID `r id` com conjunto de treino consistindo nos últimos 14 períodos e considerando um horizonte preditivo de até 5 meses a frente. Para tal será utilizado a função tsCV, que calcula os erros de previsão obtidos aplicando a função de previsão a subconjuntos da série temporal, conforme ilustrado na figura abaixo. Os modelos utilizados para previsão são aqueles apresentados anteriormente: ARIMA, ARIMA com  Box-Cox, ETS e ETS com box-cox. 
 
 ![Janelas deslizantes](janela2.png)
 
@@ -387,17 +387,31 @@ kableExtra::kable(tab2 ,"latex", booktabs=T,
 ```{r, fig.align="center", fig.cap="Erros absolutos médios a cada horizonte de previsão", echo = FALSE}
 # Construir um gráfico com os horizontes no eixo x e a métrica no eixo y
 plot.ts(tab, plot.type='s', col=1:5, lwd=c(2,2), xlab="h",ylab="MAE")
-legend(x=1,y=1200, legend=c("ARIMA", "ARIMA COM BOXCOX", "ETS", "ETS com BOXCOX"), col=1:4, lwd=c(2,2), cex=1)
+legend(x=1,y=1200, legend=c("ARIMA", "ARIMA com  Box-Cox", "ETS", "ETS com  Box-Cox"), col=1:4, lwd=c(2,2), cex=1)
 ```
 
-
-
 # Resultados
+
+## Gráfico com as previsões de cada modelo
+```{r, out.width = "60%"}
+h = 5
+
+plot(f_arima(serie,h));plot(f_arima_boxcox(serie,h));
+plot(f_ets(serie,h));
+plot(f_ets_boxcox(serie,h))
+
+
+ets(serie,model="MAM",lambda = "auto")
+
+
+
+```
+
 
 Comparando os 4 modelos estimados anteriormente com os seguintes modelos: Auto Arima, SES, Holt, Auto ETS, STLF, Bats, Tbats, temos os seguintes da métrica MAE, no conjunto de testes:
 
 ```{r, echo=F, warning=F}
-h = 5
+
 #comparar os 4 modelos com os modelos abaixo
 
 dados_teste =  M3[[id]]$xx
@@ -426,8 +440,8 @@ acuracia <- rbind(f_arima[2,3],
                   f_bats[2,3],
                   f_tbats[2,3])
 
-modelos = c("Arima","Arima com boxcox","ETS",
-            "ETS com boxcox","Auto Arima","SES",
+modelos = c("ARIMA","ARIMA com  Box-Cox","ETS",
+            "ETS com  Box-Cox","Auto ARIMA","SES",
             "Holt","Auto ETS","STLF","Bats","Tbats")
 
 resultados = cbind(modelos, round(acuracia,3))
