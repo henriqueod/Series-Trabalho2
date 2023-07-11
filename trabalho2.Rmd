@@ -161,7 +161,6 @@ $$\phi_1 = 1,2866; \phi_2=-1,0479; \phi_3=0,2771; \theta_1 = -2,0555; \theta_2 =
 ## Análise de Resíduos
 
 Os resíduos do modelo ARIMA sem transformação apresentam o seguinte comportamento gráfico:
-
 ```{r fig.align="center",fig.cap='Resíduos ARIMA sem transformação', echo = FALSE}
 par(mfrow=c(2,2))
 plot(fit_arima$residuals, ylab = "Resíduos", xlab = "")
@@ -171,7 +170,6 @@ qqnorm(fit_arima$residuals, main="")
 qqline(fit_arima$residuals)
 ```
 Já os resíduos do modelo ARIMA com transformação Box-Cox apresentam o seguinte comportamento gráfico:
-
 ```{r fig.align="center",fig.cap='Resíduos ARIMA com transformação boxcox', echo = FALSE}
 par(mfrow=c(2,2))
 plot(fit_arima_boxcox$residuals, ylab = "Resíduos", xlab = "")
@@ -185,14 +183,18 @@ Graficamente, observa-se que os resíduos de ambos os modelos parecem distribuir
 
 A estacionaridade será testada a partir do teste Kwiatkowski-Phillips-Schmidt-Shin (KPSS), com a hipótese nula de que a série é estacionária. O teste para o modelo $SARIMA(1,1,1) \times (1,0,1)_{12}$ e para o mesmo modelo, utilizando a transformação de Box-Cox:
 
+
 | Modelo | KPSS | P-valor |
 |:---:|:---:|:---:|
 | SARIMA sem Box-Cox | `r kpss.test(fit_arima$residuals)[[1]]` | `r kpss.test(fit_arima$residuals)[[3]]` |
 | SARIMA com Box-Cox | `r kpss.test(fit_arima_boxcox$residuals)[[1]]` | `r kpss.test(fit_arima_boxcox$residuals)[[3]]` |
 
+
+
+
 De acordo com o teste KPSS, não se pode rejeitar a hipótese de estacionariedade dos resíduos de ambos os modelos. 
 
-O teste de independência dos resíduos é realizado a partir do teste Ljung-Box, com a hipótese $H_0$ de que os resíduos são idenpendentemente distribuídos. O teste apresenta os seguintes valores para os dois modelos:
+O teste de independência dos resíduos é realizado a partir do teste Ljung-Box, com a hipótese $H_0$ de que os resíduos são idenpendentemente distribuídos. O teste apresenta os seguintes valores para os dois modelos, com um lag igual a 15:
 
 | Modelo | Chi-Quadrado | Graus de liberdade | P-valor |
 |:---:|:---:|:---:|:---:|
@@ -294,10 +296,12 @@ for(comp_erro in componentes_erros){
 O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo, para o modelo não transformado é o "*MMM*", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. Já para o modelo com transformação de Box-Cox, o modelo com menor AICc é o "*MAM*" *com dumped*. 
 ```{r, include = FALSE}
 fit_ets <- ets(serie, model = "MMM", damped = FALSE)
+fit_ets
 fit_ets_boxcox <- ets(serie, model = "AAA", damped = FALSE, lambda = lambda)
+fit_ets_boxcox
 ```
 
-O modelo selecionado sem transformação apresenta a seguinte estrutura:
+O modelo selecionado sem transformação apresenta a seguinte estrutura, com $\alpha = 0.111, \beta = 10^{-4}, \gamma = 10^{-4}$:
 
 $$
 \begin{aligned}
@@ -307,15 +311,13 @@ b_t &=b_{t-1}+\frac{\beta \epsilon_t}{s_{t-m}l_{t-1}} \\
 s_t &=s_{t-m} + \frac{\gamma \epsilon_t}{l_{t-1}b_{t-1}}
 \end{aligned}
 $$
-Enquanto o modelo selecionado para o conjunto de dados transformados por Box-Cox tem a seguinte estrutura:
-
-# TEM QUE MUDAR ISSO AQUI!
+Enquanto o modelo selecionado para o conjunto de dados transformados por Box-Cox tem a seguinte estrutura, com $\alpha = 0.1245, \beta = 10^{-4}, \gamma = 10^{-4}$:
 $$
 \begin{aligned}
-\mu_t &= (l_{t-1} + \phi b_{t-1})s_{t-m}\\
-l_t &= (l_{t-1} + \phi b_{t-1})(1+\alpha \epsilon_t)\\
-b_t &=\phi  b_{t-1}+\beta (l_{t-1} + \phi b_{t-1})\epsilon_t  \\
-s_t &=s_{t-m} (1 + \gamma \epsilon_t)
+\mu_t &= l_{t-1} + \phi b_{t-1} + s_{t-m}\\
+l_t &= l_{t-1} + \phi b_{t-1} + \alpha \epsilon_t\\
+b_t &=\phi  b_{t-1}+\beta \epsilon_t  \\
+s_t &=s_{t-m} + \gamma \epsilon_t
 \end{aligned}
 $$
 
@@ -376,7 +378,7 @@ Observa-se que os resíduos parecem comportar-se de maneira aleatória, com dist
 | Ljung-Box | 25.522 | 0.043 | 31.196 | 0.008 |
 | Shapiro-Wilk | 0.98751 | 0.416 | 0.99329 | 0.8794 |
 
-Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência em ambos os casos. 
+Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência em ambos os casos, como pode ocorrer em métodos ETS, que objetivam a previsão de dados e não sua modelagem.
 
 
 # Estudo de desempenho preditivo por janela deslizante
@@ -427,8 +429,9 @@ MAE_ets = CV_ets %>% abs() %>% colMeans(na.rm=T)
 MAE_ets_boxcox = CV_ets_boxcox %>% abs() %>% colMeans(na.rm=T)
 tab = cbind(MAE_arima, MAE_arima_boxcox, MAE_ets, MAE_ets_boxcox); 
 ```
-Para comparação dos resultados, foi calculado o erro absoluto médio (MAE) para horizonte de previsão.
 
+
+Para comparação dos resultados, foi calculado o erro absoluto médio (MAE) para horizonte de previsão.
 ```{r, echo = FALSE}
 tab2 <- tab
 colnames(tab2) <- c('ARIMA', 'ARIMA Box-Cox', 'ETS', 'ETS Box-Cox')
@@ -441,40 +444,32 @@ kableExtra::kable(tab2 ,"latex", booktabs=T,
   kableExtra::row_spec(2:dim(tab2)[2], extra_css = "border-bottom-style: none")
 ```
 
+Os resultados dos erros médios absolutos para horizontes entre 1 e 5 períodos mostra que os quatro modelos apresentam um resultado semelhante. Para o primeiro horizonte, os modelo ETS mostraram um erro médio menor, enquanto para os horizontes 2, 3 e 4, o modelo ARIMA com transformação de Box-Cox mostrou menor erro absoluto médio. Para o 5º horizonte, os modelos ETS e o modelo ARIMA sem transformação mostraram um erro absoluto médio menor que o modelo ARIMA com box-cox.
 
-```{r, fig.align="center", fig.cap="Erros absolutos médios a cada horizonte de previsão", echo = FALSE}
+
+```{r, fig.align="center", fig.cap="Erros absolutos médios a cada horizonte de previsão", echo = FALSE, out.height="60%", fig.align="center"}
 # Construir um gráfico com os horizontes no eixo x e a métrica no eixo y
 plot.ts(tab, plot.type='s', col=1:5, lwd=c(2,2), xlab="h",ylab="MAE")
-legend(x=1,y=1200, legend=c("ARIMA", "ARIMA com  Box-Cox", "ETS", "ETS com  Box-Cox"), col=1:4, lwd=c(2,2), cex=1)
+legend(x=1,y=1300, legend=c("ARIMA", "ARIMA com  Box-Cox", "ETS", "ETS com  Box-Cox"), col=1:4, lwd=c(2,2), cex=1)
 ```
+
 
 # Resultados
 
 ## Gráfico com as previsões de cada modelo
-```{r, out.width = "60%"}
-h = 5
 
-plot(f_arima(serie,h));plot(f_arima_boxcox(serie,h));
-plot(f_ets(serie,h));
-plot(f_ets_boxcox(serie,h))
+Os gráficos dos modelos ARIMA e ETS anteriormente especificados foram traçados abaixo, no qual, em azul é possível observar previsões pontuais e, em cinza, os intervalos para as previsões em cada horizonte de tempo. Observa-se que todos os modelos levam a previsões com formas gráficas similares, entretanto, é possível notar um maior intervalo para as previsões no modelo $ARIMA(1,1,1) \times (1,0,1)_{12}$.
 
 
-ets(serie,model="MAM",lambda = "auto")
-
-
-
+```{r, echo = FALSE, fig.cap="Previsões pontuais e intervalares", fig.pos = 'H', warning=F}
+h=10
+par(mfrow=c(2,2))
+par(mar=c(2,2,2,2))
+plot(f_arima(serie,h), main="ARIMA(1,1,1)(1,0,1)[12]")
+plot(f_arima_boxcox(serie,h), main="ARIMA(1,1,1)(1,0,1)[12] BoxCox")
+plot(f_ets(serie,h), main="ETS(M,M,M)")
+plot(f_ets_boxcox(serie,h), main="ETS(A,Ad,A) BoxCox")
 ```
-
-
-```{r}
-h=5
-plot(f_arima(serie,h), main="Modelo ARIMA(1,1,1)(1,0,1)[12]")
-plot(f_arima_boxcox(serie,h), main="Modelo ARIMA(1,1,1)(1,0,1)[12] com transformação")
-plot(f_ets(serie,h), main="Modelo ETS(M,M,M)")
-plot(f_ets_boxcox(serie,h), main="Modelo ETS(A,A,A) com transformação")
-```
-
-
 Comparando os 4 modelos estimados anteriormente com os seguintes modelos: Auto Arima, SES, Holt, Auto ETS, STLF, Bats, Tbats, temos os seguintes da métrica MAE, no conjunto de testes:
 
 ```{r, echo=F, warning=F}
