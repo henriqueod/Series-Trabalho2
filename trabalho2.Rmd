@@ -225,22 +225,15 @@ Os modelos que apresentam as características observadas na decomposição e seu
 
 
 ```{r, include = FALSE}
-BoxCox.lambda(serie)
-
-
 componentes_tendencia = c("A","M")
 componentes_sazonais = c("A","M")
 componentes_erros = c("A","M")
 
 model_ets = function(y,model,damped,lambda){
   tryCatch({
-    ets(y,model,damped,lambda)
+    ets(y,model=model,damped=damped, lambda=lambda)
   },
-  error=function(cond) {
-    print(paste0("Lambda: ",lambda))
-    print("Não pode. Motivo:")
-    message(cond)
-    }
+  error=function(cond)print('nao pode')
   )
 }
 
@@ -264,17 +257,19 @@ for(comp_erro in componentes_erros){
 }
 
 # Modelos com BoxCox
+lambda = BoxCox.lambda(serie)
 for(comp_erro in componentes_erros){
   for(comp_tend in componentes_tendencia){
     for(comp_saz in componentes_sazonais){
       for(damped in c(T,F)){
         modelo = paste0(comp_erro,comp_tend,comp_saz)
+        print("------------------------------")
         print(paste0("Modelo: ", modelo))
         print(paste0("Damped: ", damped))
         modelo_ets = model_ets(y = serie,
                                model = modelo,
                                damped = damped, 
-                               lambda = "auto")
+                               lambda = lambda)
         print(modelo_ets['aicc'])
       }
     }
@@ -282,8 +277,6 @@ for(comp_erro in componentes_erros){
 }
 
 
-teste <- ets(serie,"AAA",damped = TRUE, lambda = "auto")
-teste$call
 ```
 
 
@@ -291,17 +284,17 @@ teste$call
 |:---:|:---:|:---:|
 | AAA | 1950.568 | 290.3203 |
 | AAA Dumped | 1953.429 | 295.7952 |
-| MAA | 1947.757 | 288.9366 |
-| MAA Dumped | 1942.956 | 297.1602 |
-| MAM | 1925.053 | 292.4207 |
-| MAM Dumped | 1928.537 | 291.7428 |
-| MMM | 1923.268 | 300.8768 |
-| MMM Dumped | 1928.128 | 293.2297 |
+| MAA | 1947.757 | Combinação não possível |
+| MAA Dumped | 1942.956 | Combinação não possível |
+| MAM | 1925.053 | Combinação não possível |
+| MAM Dumped | 1928.537 | Combinação não possível |
+| MMM | 1923.268 | Combinação não possível |
+| MMM Dumped | 1928.128 | Combinação não possível |
 
 O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo, para o modelo não transformado é o "*MMM*", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. Já para o modelo com transformação de Box-Cox, o modelo com menor AICc é o "*MAM*" *com dumped*. 
 ```{r, include = FALSE}
 fit_ets <- ets(serie, model = "MMM", damped = FALSE)
-fit_ets_boxcox <- ets(BoxCox(serie,lambda=lambda_boxcox), model = "MAM", damped = T)
+fit_ets_boxcox <- ets(serie, model = "AAA", damped = FALSE, lambda = lambda)
 ```
 
 O modelo selecionado sem transformação apresenta a seguinte estrutura:
@@ -316,6 +309,7 @@ s_t &=s_{t-m} + \frac{\gamma \epsilon_t}{l_{t-1}b_{t-1}}
 $$
 Enquanto o modelo selecionado para o conjunto de dados transformados por Box-Cox tem a seguinte estrutura:
 
+# TEM QUE MUDAR ISSO AQUI!
 $$
 \begin{aligned}
 \mu_t &= (l_{t-1} + \phi b_{t-1})s_{t-m}\\
@@ -325,7 +319,7 @@ s_t &=s_{t-m} (1 + \gamma \epsilon_t)
 \end{aligned}
 $$
 
-A decomposição do modelo ETS "MMM" e do modelo ETS "MAM com Dumped" e transformação de Box-Cox são ilustrados abaixo.
+A decomposição do modelo ETS "MMM" e do modelo ETS "AAA com Dumped" e transformação de Box-Cox são ilustrados abaixo.
 
 ```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
 par(mfrow=c(1,2))
@@ -361,10 +355,10 @@ qqnorm(residuo_ets_boxcox, main="", xlab = "Gráfico QQ", ylab="");qqline(residu
 
 ```{r, include = FALSE}
 kpss_ets = kpss.test(residuo_ets)
-box_ets = Box.test(residuo_ets, lag = 20, type ="Ljung-Box")
+box_ets = Box.test(residuo_ets, lag = 15, type ="Ljung-Box")
 shap_ets = shapiro.test(residuo_ets)
 kpss_ets_boxcox = kpss.test(residuo_ets_boxcox)
-box_ets_boxcox = Box.test(residuo_ets_boxcox, lag = 20, type ="Ljung-Box")
+box_ets_boxcox = Box.test(residuo_ets_boxcox, lag = 15, type ="Ljung-Box")
 shap_ets_boxcox = shapiro.test(residuo_ets_boxcox)
 kpss_ets
 kpss_ets_boxcox
@@ -376,11 +370,11 @@ shap_ets_boxcox
 
 Observa-se que os resíduos parecem comportar-se de maneira aleatória, com distribuição normal e sem autocorrelações importantes entre diferentes intervalos. Os testes formais encontram-se na tabela abaixo, a exemplo do anteriormente realizado:
 
-| Teste | MMM sem dumped | p-valor | MAM com dumped Box-Cox | p-valor |
+| Teste | MMM sem dumped | p-valor | AAA com dumped Box-Cox | p-valor |
 |:---:|:---:|---|:---:|---|
-| KPSS | 0.12301 | 0.1 | 0.2145 | 0.1 |
-| Ljung-Box | 25.522 | 0.038 | 41.505 | 0.003 |
-| Shapiro-Wilk | 0.98751 | 0.416 | 0.99443 | 0.944 |
+| KPSS | 0.12301 | 0.1 | 0.12936 | 0.1 |
+| Ljung-Box | 25.522 | 0.043 | 31.196 | 0.008 |
+| Shapiro-Wilk | 0.98751 | 0.416 | 0.99329 | 0.8794 |
 
 Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência em ambos os casos. 
 
