@@ -293,7 +293,7 @@ for(comp_erro in componentes_erros){
 | MMM | 1923.268 | Combinação não possível |
 | MMM Dumped | 1928.128 | Combinação não possível |
 
-O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo, para o modelo não transformado é o "*MMM*", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. Já para o modelo com transformação de Box-Cox, o modelo com menor AICc é o "*MAM*" *com dumped*. 
+O modelo com menor AICc e, portanto, o modelo com melhor desempenho comparativo, para o modelo não transformado é o "*MMM*", em que apresenta componentes multiplicativos para previsões de erros, tendência e sazonalidade. Já para o modelo com transformação de Box-Cox, o modelo com menor AICc é o "*AAA*". 
 ```{r, include = FALSE}
 fit_ets <- ets(serie, model = "MMM", damped = FALSE)
 fit_ets
@@ -321,7 +321,7 @@ s_t &=s_{t-m} + \gamma \epsilon_t
 \end{aligned}
 $$
 
-A decomposição do modelo ETS "MMM" e do modelo ETS "AAA com Dumped" e transformação de Box-Cox são ilustrados abaixo.
+A decomposição do modelo ETS "MMM" e do modelo ETS "AAA" e transformação de Box-Cox são ilustrados abaixo.
 
 ```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
 par(mfrow=c(1,2))
@@ -333,7 +333,7 @@ plot(fit_ets_boxcox, xlab = "Decomposição ETS com box-cox")
 
 Os resíduos do modelo ETS sem transformação selecionado são ilustrados na figura a seguir:
 
-```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS", echo = FALSE}
+```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS", echo = FALSE,out.height="60%"}
 residuo_ets <- fit_ets$residuals
 par(mfrow=c(2,2)); 
 plot(residuo_ets, xlab = "Resíduos", ylab = "");
@@ -344,7 +344,7 @@ qqnorm(residuo_ets, main="", xlab = "Gráfico QQ", ylab="");qqline(residuo_ets)
 Enquanto os gráficos para o modelo ETS selecionado usando tranformação de Box-Cox são ilustrados abaixo:
 
 
-```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS do modelo com Box-Cox", echo = FALSE}
+```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS do modelo com Box-Cox", echo = FALSE, out.height="60%"}
 residuo_ets_boxcox <- fit_ets_boxcox$residuals
 par(mfrow=c(2,2)); 
 plot(residuo_ets_boxcox, xlab = "Resíduos", ylab = "");
@@ -466,10 +466,13 @@ h=10
 par(mfrow=c(2,2))
 par(mar=c(2,2,2,2))
 plot(f_arima(serie,h), main="ARIMA(1,1,1)(1,0,1)[12]")
-plot(f_arima_boxcox(serie,h), main="ARIMA(1,1,1)(1,0,1)[12] BoxCox")
+plot(f_arima_boxcox(serie,h), main="ARIMA(3,1,3)(1,0,1)[12] BoxCox")
 plot(f_ets(serie,h), main="ETS(M,M,M)")
-plot(f_ets_boxcox(serie,h), main="ETS(A,Ad,A) BoxCox")
+plot(f_ets_boxcox(serie,h), main="ETS(A,A,A) BoxCox")
 ```
+
+
+
 Comparando os 4 modelos estimados anteriormente com os seguintes modelos: Auto Arima, SES, Holt, Auto ETS, STLF, Bats, Tbats, temos os seguintes da métrica MAE, no conjunto de testes:
 
 ```{r, echo=F, warning=F}
@@ -519,3 +522,8 @@ kableExtra::kable(resultados,"latex", booktabs=T,
 
 O modelo ETS(M,M,M) foi o que obteve o menor MAE no conjunto de teste, apresentando um valor igual a 
 `r round(f_ets[2,3],3)`.
+
+
+# Conclusão
+
+Podemos conclui que, a série 1686 do M3, é uma séria que apresenta uma tendência negativa, na qual precisa-se de uma diferenciação simples na própria séria para torná-la estacionária. Na parte preditiva é possível notar uma semelhança próxima nos resultados dos 4 modelos estimados durante a execução do trabalho, mas ao fazer a média da previsão da série em 5 horizontes, é possível observar que a série ETS(M,M,M) foi a que obteve o menor MAE dentre os 10 modelos que foram comparados.
