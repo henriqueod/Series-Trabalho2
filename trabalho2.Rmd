@@ -1,7 +1,7 @@
 ---
 title: "Análise de Séries Temporais - Trabalho 2"
 author: "Davi Guerra Alves - Henrique Oliveira Dumay"
-date: '2023-07-02'
+date: '12/07/2023'
 output: pdf_document
 header-includes:
  \usepackage{float}
@@ -37,7 +37,7 @@ M3[[id]] %>% plot(xlab="Ano", ylab="N de carregamentos")
 mstl(serie, s.window= c(12)) %>% 
   plot(main="Série Original")
 ```
-A decomposição MSTL mostra os componentes de tendência, sazonalidade e erro da série estudada. Percebe-se a presença de uma tendência crescente, com múltiplas sazonalidades que apesentam mudança do comportamento ao longo do tempo. É possível observar, graficamente, um alargamento da sazonalidade ao fim da série quando comparando ao início da série. 
+A decomposição MSTL mostra os componentes de tendência, sazonalidade e erro da série estudada. Percebe-se a presença de uma tendência decrescente, com comportamento sazonal com certa regularidade ao longo do tempo. 
 
 # Modelos ARIMA
 
@@ -68,7 +68,7 @@ Consideramos que a série é, agora, estacionária, observamos os gráficos da f
 
 ```{r, fig.align="center",fig.cap='Gráficos ACF e PACF', echo = FALSE}
 
-par(mfrow=c(3,1),mar=c(4, 3, 3, 1) + 0.5)
+par(mfrow=c(3,1),mar=c(1, 1, 1, 1) + 0.5)
 plot(serie_dif,main="Série diferenciada")
 acf(serie_dif, lag = 5*12, main="ACF") 
 pacf(serie_dif, lag = 5*12, main="PACF")
@@ -104,6 +104,7 @@ fit_arima
 
 
 $$\phi_1 = 0,3152; \theta_1 = -0,9218; \varphi = 0,9606; \vartheta = -0,7359$$
+
 Para o modelo ARIMA utilizando transformação Box-Cox, os valores para *d* e *D* utilizando as funções _ndiffs()_ e _nsdiffs()_ são, respectivamente, *1* e *0*. De acordo com o teste KPSS, não se pode rejeitar a hipótese nula da série transformada ser estacionária (KPSS = 0.021624 e p-valor = 0.1). O valor do parâmetro $\lambda$ da transformação de Box-Cox é 0.09559902.
 ```{r, include=FALSE}
 BoxCox.lambda(M3[[id]]$x)
@@ -124,7 +125,7 @@ kpss.test(serie_box_cox_dif)
 ```
 
 ```{r, fig.align="center",fig.cap='Gráficos ACF e PACF da série transformada (BoxCox)', echo = FALSE}
-par(mfrow=c(3,1),mar=c(4, 3, 3, 1) + 0.5)
+par(mfrow=c(3,1),mar=c(1,1,1,1) + 0.5)
 plot(serie_box_cox_dif,main="Série diferenciada", ylab = "", xlab = "")
 acf(serie_box_cox_dif, lag = 5*12, main="ACF", ylab = "") 
 pacf(serie_box_cox_dif, lag = 5*12, main="PACF", ylab = "")
@@ -162,20 +163,20 @@ $$\phi_1 = 1,2866; \phi_2=-1,0479; \phi_3=0,2771; \theta_1 = -2,0555; \theta_2 =
 
 Os resíduos do modelo ARIMA sem transformação apresentam o seguinte comportamento gráfico:
 ```{r fig.align="center",fig.cap='Resíduos ARIMA sem transformação', echo = FALSE}
-par(mfrow=c(2,2))
+par(mfrow=c(2,2), mar=c(3,4,3,3))
 plot(fit_arima$residuals, ylab = "Resíduos", xlab = "")
-acf(fit_arima$residuals, main="")
-pacf(fit_arima$residuals, main="")
-qqnorm(fit_arima$residuals, main="")
+acf(fit_arima$residuals, main="", xlab = "")
+pacf(fit_arima$residuals, main="", xlab = "")
+qqnorm(fit_arima$residuals, main="", ylab="QQPlot", xlab="")
 qqline(fit_arima$residuals)
 ```
 Já os resíduos do modelo ARIMA com transformação Box-Cox apresentam o seguinte comportamento gráfico:
 ```{r fig.align="center",fig.cap='Resíduos ARIMA com transformação boxcox', echo = FALSE}
-par(mfrow=c(2,2))
+par(mfrow=c(2,2), mar=c(3,4,3,3))
 plot(fit_arima_boxcox$residuals, ylab = "Resíduos", xlab = "")
 acf(fit_arima_boxcox$residuals, main="", xlab="")
 pacf(fit_arima_boxcox$residuals, main="", xlab="")
-qqnorm(fit_arima_boxcox$residuals, main="", xlab="")
+qqnorm(fit_arima_boxcox$residuals, main="", xlab="", ylab="QQPlot")
 qqline(fit_arima_boxcox$residuals)
 ```
 
@@ -189,12 +190,11 @@ A estacionaridade será testada a partir do teste Kwiatkowski-Phillips-Schmidt-S
 | SARIMA sem Box-Cox | `r kpss.test(fit_arima$residuals)[[1]]` | `r kpss.test(fit_arima$residuals)[[3]]` |
 | SARIMA com Box-Cox | `r kpss.test(fit_arima_boxcox$residuals)[[1]]` | `r kpss.test(fit_arima_boxcox$residuals)[[3]]` |
 
-
-
-
 De acordo com o teste KPSS, não se pode rejeitar a hipótese de estacionariedade dos resíduos de ambos os modelos. 
 
 O teste de independência dos resíduos é realizado a partir do teste Ljung-Box, com a hipótese $H_0$ de que os resíduos são idenpendentemente distribuídos. O teste apresenta os seguintes valores para os dois modelos, com um lag igual a 15:
+
+\newpage
 
 | Modelo | Chi-Quadrado | Graus de liberdade | P-valor |
 |:---:|:---:|:---:|:---:|
@@ -221,10 +221,9 @@ shapiro.test(fit_arima$residuals)[[2]]
 
 # Modelos ETS
 
-O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman et al. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. Quando transformada, será utilizado o parâmetro $\lambda = `r BoxCox.lambda(serie)`$.
+O modelo ETS (Error, trend and seasonal) permite descrever os modelos de alisamento exponencial em função dos tipos de suas componentes: tendência, sazonalidade e erro. O modelo utiliza três caracteres como identificação de acordo com a terminologia adotada por Hyndman et al. (2002) e Hyndman _et al_. (2008). A primeira letra se refere ao componente do erro; a segunda, ao componente da tendência e a terceira, da sazonalidade. A série anteriormente descrita apresenta tendência e sazonalidade claras à decomposição realizada e, portanto, trabalharemos com componentes de modelagem que contenham essas características. Quando transformada, será utilizado o parâmetro $\lambda = `r BoxCox.lambda(serie)`$.
 
 Os modelos que apresentam as características observadas na decomposição e seus respectivos AICcs, considerando um modelo não transformado e um modelo com transformação de Box-Cox, estão representados na tabela abaixo:
-
 
 ```{r, include = FALSE}
 componentes_tendencia = c("A","M")
@@ -314,14 +313,14 @@ $$
 Enquanto o modelo selecionado para o conjunto de dados transformados por Box-Cox tem a seguinte estrutura, com $\alpha = 0.1245, \beta = 10^{-4}, \gamma = 10^{-4}$:
 $$
 \begin{aligned}
-\mu_t &= l_{t-1} + \phi b_{t-1} + s_{t-m}\\
-l_t &= l_{t-1} + \phi b_{t-1} + \alpha \epsilon_t\\
-b_t &=\phi  b_{t-1}+\beta \epsilon_t  \\
+\mu_t &= l_{t-1} + b_{t-1} + s_{t-m}\\
+l_t &= l_{t-1} + b_{t-1} + \alpha \epsilon_t\\
+b_t &= b_{t-1}+\beta \epsilon_t  \\
 s_t &=s_{t-m} + \gamma \epsilon_t
 \end{aligned}
 $$
 
-A decomposição do modelo ETS "MMM" e do modelo ETS "AAA" e transformação de Box-Cox são ilustrados abaixo.
+A decomposição do modelo ETS "MMM" e do modelo ETS "AAA" com transformação de Box-Cox são ilustrados abaixo.
 
 ```{r, fig.align="center", fig.cap="Decomposição ETS", echo = FALSE}
 par(mfrow=c(1,2))
@@ -335,7 +334,7 @@ Os resíduos do modelo ETS sem transformação selecionado são ilustrados na fi
 
 ```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS", echo = FALSE,out.height="60%"}
 residuo_ets <- fit_ets$residuals
-par(mfrow=c(2,2)); 
+par(mfrow=c(2,2), mar=c(4,3,3,3)) 
 plot(residuo_ets, xlab = "Resíduos", ylab = "");
 acf(residuo_ets, main="", ylab="", xlab="ACF");
 pacf(residuo_ets, main="", ylab="", xlab="PACF");
@@ -346,7 +345,7 @@ Enquanto os gráficos para o modelo ETS selecionado usando tranformação de Box
 
 ```{r, fig.align="center", fig.cap="Análise de Resíduos do ETS do modelo com Box-Cox", echo = FALSE, out.height="60%"}
 residuo_ets_boxcox <- fit_ets_boxcox$residuals
-par(mfrow=c(2,2)); 
+par(mfrow=c(2,2), mar=c(4,3,3,3)) 
 plot(residuo_ets_boxcox, xlab = "Resíduos", ylab = "");
 acf(residuo_ets_boxcox, main="", ylab="", xlab="ACF");
 pacf(residuo_ets_boxcox, main="", ylab="", xlab="PACF");
@@ -380,6 +379,7 @@ Observa-se que os resíduos parecem comportar-se de maneira aleatória, com dist
 
 Os resultados acima apresentados sugerem que os resíduos do modelo são estacionários, apresentam distribuição normal, entretanto, é possível a rejeição da hipótese nula de independência em ambos os casos, como pode ocorrer em métodos ETS, que objetivam a previsão de dados e não sua modelagem.
 
+\newpage
 
 # Estudo de desempenho preditivo por janela deslizante
 
@@ -431,7 +431,7 @@ tab = cbind(MAE_arima, MAE_arima_boxcox, MAE_ets, MAE_ets_boxcox);
 ```
 
 
-Para comparação dos resultados, foi calculado o erro absoluto médio (MAE) para horizonte de previsão.
+Para comparação dos resultados, foi calculado o erro absoluto médio (MAE) para cinco horizontes de previsão.
 ```{r, echo = FALSE}
 tab2 <- tab
 colnames(tab2) <- c('ARIMA', 'ARIMA Box-Cox', 'ETS', 'ETS Box-Cox')
@@ -456,12 +456,10 @@ legend(x=1,y=1300, legend=c("ARIMA", "ARIMA com  Box-Cox", "ETS", "ETS com  Box-
 
 # Resultados
 
-## Gráfico com as previsões de cada modelo
-
 Os gráficos dos modelos ARIMA e ETS anteriormente especificados foram traçados abaixo, no qual, em azul é possível observar previsões pontuais e, em cinza, os intervalos para as previsões em cada horizonte de tempo. Observa-se que todos os modelos levam a previsões com formas gráficas similares, entretanto, é possível notar um maior intervalo para as previsões no modelo $ARIMA(1,1,1) \times (1,0,1)_{12}$.
 
 
-```{r, echo = FALSE, fig.cap="Previsões pontuais e intervalares", fig.pos = 'H', warning=F}
+```{r, echo = FALSE, fig.cap="Previsões pontuais e intervalares", fig.pos = 'H', warning=F, fig.pos = 'H'}
 h=10
 par(mfrow=c(2,2))
 par(mar=c(2,2,2,2))
@@ -490,8 +488,8 @@ f_ses = ses(serie, h=h)  %>% forecast(h=h) %>% accuracy(dados_teste)
 f_holt = holt(serie, h=h) %>% forecast(h=h) %>% accuracy(dados_teste)
 f_auto_ets = ets(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
 f_stlf = stlf(serie, h=h) %>% forecast(h=h) %>% accuracy(dados_teste)
-f_bats = bats(serie) %>% forecast() %>% accuracy(dados_teste)
-f_tbats = tbats(serie) %>% forecast() %>% accuracy(dados_teste)
+f_bats = bats(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
+f_tbats = tbats(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
 
 acuracia <- rbind(f_arima[2,3],
                   f_arima_boxcox[2,3],
@@ -505,8 +503,8 @@ acuracia <- rbind(f_arima[2,3],
                   f_bats[2,3],
                   f_tbats[2,3])
 
-modelos = c("ARIMA","ARIMA com  Box-Cox","ETS",
-            "ETS com  Box-Cox","Auto ARIMA","SES",
+modelos = c("ARIMA","ARIMA com  Box-Cox","ETS (MMM)",
+            "ETS com  Box-Cox (AAA)","Auto ARIMA","SES",
             "Holt","Auto ETS","STLF","Bats","Tbats")
 
 resultados = cbind(modelos, round(acuracia,3))
@@ -520,10 +518,281 @@ kableExtra::kable(resultados,"latex", booktabs=T,
   kableExtra::row_spec(2:11, extra_css = "border-bottom-style: none")
 ```
 
-O modelo ETS(M,M,M) foi o que obteve o menor MAE no conjunto de teste, apresentando um valor igual a 
-`r round(f_ets[2,3],3)`.
+O modelo TBATS foi o que apresentou o menor erro absoluto médio no conjunto de dados de teste (`r round(f_tbats[2,3],3)`). O modelo BATS apresentou o segundo menor valor, seguido pelo STLF e ETS, entretanto este último foi avaliado por um modelo sem tendência, ao contrário da modelagem da série original. 
+.
+```{r, include = F}
+ets(serie)
+```
 
 
 # Conclusão
 
-Podemos conclui que, a série 1686 do M3, é uma séria que apresenta uma tendência negativa, na qual precisa-se de uma diferenciação simples na própria séria para torná-la estacionária. Na parte preditiva é possível notar uma semelhança próxima nos resultados dos 4 modelos estimados durante a execução do trabalho, mas ao fazer a média da previsão da série em 5 horizontes, é possível observar que a série ETS(M,M,M) foi a que obteve o menor MAE dentre os 10 modelos que foram comparados.
+A série ID 1686 do banco de dados M3, é uma série que apresenta tendência negativa e sazonalidade. Ela é tornada estacionária com uma diferenciação simples. A modelagem da série por modelos ARIMA e ETS apresenta resultados preditivos semelhantes, com erros absolutos médios próximos para previsões em cinco horizontes. A análise preditiva, utilizando um segundo conjunto de dados de teste, mostrou que os benchmarks TBATS, BATS, STLF e ETS apresentaram os menores erros absolutos médios
+
+
+\newpage
+
+# Código utilizado
+
+```{r, eval=FALSE}
+M3[[id]] %>% plot(xlab="Ano", ylab="N de carregamentos")
+
+# Gráfico da série original
+mstl(serie, s.window= c(12)) %>% 
+  plot(main="Série Original")
+
+# Número de diferenças
+serie %>%
+  ndiffs()             # d = 1
+
+serie %>%
+  diff() %>%
+  nsdiffs()            # D = 0
+
+serie_dif <- serie %>% 
+  diff() 
+
+# Estacionariedade da série diferenciada
+kpss.test(serie_dif)
+
+# Gráficos da série diferenciada
+par(mfrow=c(3,1),mar=c(1, 1, 1, 1) + 0.5)
+plot(serie_dif,main="Série diferenciada")
+acf(serie_dif, lag = 5*12, main="ACF") 
+pacf(serie_dif, lag = 5*12, main="PACF")
+
+# Gráfico da série diferenciada com transformação BoxCox
+par(mfrow=c(3,1),mar=c(1,1,1,1) + 0.5)
+plot(serie_box_cox_dif,main="Série diferenciada", ylab = "", xlab = "")
+acf(serie_box_cox_dif, lag = 5*12, main="ACF", ylab = "") 
+pacf(serie_box_cox_dif, lag = 5*12, main="PACF", ylab = "")
+
+# Iterar a procura do melhor SARIMA
+melhor_AICc = Inf
+for (P in 0:1) { 
+  for (Q in 0:1) {
+    for (p in 0:3) { 
+      for (q in 0:3) {
+        fit = Arima(serie, order=c(p,1,q), seasonal=c(P,0,Q), lambda = NULL)
+        if (fit$aicc < melhor_AICc) { 
+          melhor_AICc = fit$aicc
+          cat("p =",p,", q =",q,", P =",P,", Q =",Q,", AICc =", fit$aicc, "\n")
+        }
+      }
+    }
+  }
+} 
+
+# Gráficos SARIMA(111)x(101)[12]
+plot(fit_arima$residuals, ylab = "Resíduos", xlab = "")
+acf(fit_arima$residuals, main="", xlab = "")
+pacf(fit_arima$residuals, main="", xlab = "")
+qqnorm(fit_arima$residuals, main="", ylab="QQPlot", xlab="")
+qqline(fit_arima$residuals)
+
+# Iterar a procura do melhor SARIMA + BOXCOX
+melhor_AICc = Inf
+for (P in 0:1) { 
+  for (Q in 0:1) {
+    for (p in 0:3) { 
+      for (q in 0:3) {
+        fit = Arima(serie, order=c(p,1,q), seasonal=c(P,0,Q), lambda = 'auto')
+        if (fit$aicc < melhor_AICc) { 
+          melhor_AICc = fit$aicc
+          cat("p =",p,", q =",q,", P =",P,", Q =",Q,", AICc =", fit$aicc, "\n")
+        }
+      }
+    }
+  }
+}
+
+# Gráficos SARIMA(3,1,3)x(1,0,1)[12] + BOXCOX 
+plot(fit_arima_boxcox$residuals, ylab = "Resíduos", xlab = "")
+acf(fit_arima_boxcox$residuals, main="", xlab="")
+pacf(fit_arima_boxcox$residuals, main="", xlab="")
+qqnorm(fit_arima_boxcox$residuals, main="", xlab="", ylab="QQPlot")
+qqline(fit_arima_boxcox$residuals)
+
+# Análise de resíduos
+kpss.test(fit_arima$residuals)
+kpss.test(fit_arima_boxcox$residuals)
+Box.test(fit_arima$residuals, lag = 15, type ="Ljung-Box")
+Box.test(fit_arima_boxcox$residuals, lag = 15, type ="Ljung-Box")
+shapiro.test(fit_arima$residuals)
+shapiro.test(fit_arima_boxcox$residuals)
+
+# Iterar a procura do melhor ETS
+componentes_tendencia = c("A","M")
+componentes_sazonais = c("A","M")
+componentes_erros = c("A","M")
+
+model_ets = function(y,model,damped,lambda){
+  tryCatch({
+    ets(y,model=model,damped=damped, lambda=lambda)
+  },
+  error=function(cond)print('nao pode')
+  )
+}
+
+# Modelos sem BoxCox
+for(comp_erro in componentes_erros){
+  for(comp_tend in componentes_tendencia){
+    for(comp_saz in componentes_sazonais){
+      for(damped in c(T,F)){
+        modelo = paste0(comp_erro,comp_tend,comp_saz)
+        print("------------------------------")
+        print(paste0("Modelo: ", modelo))
+        print(paste0("Damped: ", damped))
+        modelo_ets = model_ets(y = serie,
+                               model = modelo,
+                               damped = damped, 
+                               lambda = NULL)
+        print(modelo_ets['aicc'])
+      }
+    }
+  }
+}
+
+# Modelos com BoxCox
+lambda = BoxCox.lambda(serie)
+for(comp_erro in componentes_erros){
+  for(comp_tend in componentes_tendencia){
+    for(comp_saz in componentes_sazonais){
+      for(damped in c(T,F)){
+        modelo = paste0(comp_erro,comp_tend,comp_saz)
+        print("------------------------------")
+        print(paste0("Modelo: ", modelo))
+        print(paste0("Damped: ", damped))
+        modelo_ets = model_ets(y = serie,
+                               model = modelo,
+                               damped = damped, 
+                               lambda = lambda)
+        print(modelo_ets['aicc'])
+      }
+    }
+  }
+}
+
+# Modelos escolhidos
+fit_ets <- ets(serie, model = "MMM", damped = FALSE)
+fit_ets_boxcox <- ets(serie, model = "AAA", damped = FALSE, lambda = lambda)
+
+# Decomposição dos modelos ETS
+plot(fit_ets, xlab = "Decomposição ETS")
+plot(fit_ets_boxcox, xlab = "Decomposição ETS com box-cox")
+
+# Análise de resíduos
+plot(residuo_ets, xlab = "Resíduos", ylab = "");
+acf(residuo_ets, main="", ylab="", xlab="ACF");
+pacf(residuo_ets, main="", ylab="", xlab="PACF");
+qqnorm(residuo_ets, main="", xlab = "Gráfico QQ", ylab="");qqline(residuo_ets)
+plot(residuo_ets_boxcox, xlab = "Resíduos", ylab = "");
+acf(residuo_ets_boxcox, main="", ylab="", xlab="ACF");
+pacf(residuo_ets_boxcox, main="", ylab="", xlab="PACF");
+qqnorm(residuo_ets_boxcox, main="", xlab = "Gráfico QQ", ylab="");qqline(residuo_ets_boxcox)
+kpss_ets = kpss.test(residuo_ets)
+box_ets = Box.test(residuo_ets, lag = 15, type ="Ljung-Box")
+shap_ets = shapiro.test(residuo_ets)
+kpss_ets_boxcox = kpss.test(residuo_ets_boxcox)
+box_ets_boxcox = Box.test(residuo_ets_boxcox, lag = 15, type ="Ljung-Box")
+shap_ets_boxcox = shapiro.test(residuo_ets_boxcox)
+
+# Janelas deslizantes
+f_arima <- function(y, h){
+  forecast(fit_arima, h)
+}
+f_arima_boxcox <- function(y, h){
+  forecast(fit_arima_boxcox, h,lambda = lambda)
+}
+f_ets <- function(y, h){
+  forecast(fit_ets, h)
+}
+f_ets_boxcox <- function(y, h){
+  forecast(fit_ets_boxcox, h, lambda = lambda)
+}
+
+# Calculo dos erros de previsão com a janela flutuante
+CV_arima = tsCV(y=serie, 
+                forecastfunction=f_arima, 
+                h=5, 
+                init = length(serie)-14)
+CV_arima_boxcox = tsCV(y=serie, 
+                       forecastfunction=f_arima_boxcox, 
+                       h=5, 
+                       init = length(serie)-14)
+CV_ets = tsCV(y=serie, 
+              forecastfunction=f_ets, 
+              h=5, 
+              init = length(serie)-14)
+CV_ets_boxcox = tsCV(y=serie, 
+                     forecastfunction=f_ets_boxcox, 
+                     h=5,
+                     init = length(serie)-14)
+
+
+# Calculo da métrica de erro para cada horizonte de previsão
+# por erro absoluto médio (MAE)
+MAE_arima = CV_arima %>% abs() %>% colMeans(na.rm=T)
+MAE_arima_boxcox = CV_arima_boxcox %>% abs() %>% colMeans(na.rm=T)
+MAE_ets = CV_ets %>% abs() %>% colMeans(na.rm=T)
+MAE_ets_boxcox = CV_ets_boxcox %>% abs() %>% colMeans(na.rm=T)
+tab = cbind(MAE_arima, MAE_arima_boxcox, MAE_ets, MAE_ets_boxcox); 
+
+# Apresentação dos resultados MAE
+tab2 <- tab
+colnames(tab2) <- c('ARIMA', 'ARIMA Box-Cox', 'ETS', 'ETS Box-Cox')
+
+kableExtra::kable(tab2 ,"latex", booktabs=T,
+                  escape = F,align = "c",
+                  caption = "Erro absoluto médio") %>%
+  kableExtra::kable_styling(position = "center", 
+                            latex_options = "HOLD_position") %>% 
+  kableExtra::row_spec(2:dim(tab2)[2], extra_css = "border-bottom-style: none")
+
+# Construir um gráfico com os horizontes no eixo x e a métrica no eixo y
+plot.ts(tab, plot.type='s', col=1:5, lwd=c(2,2), xlab="h",ylab="MAE")
+legend(x=1,y=1300, legend=c("ARIMA", "ARIMA com  Box-Cox", "ETS", "ETS com  Box-Cox"), col=1:4, lwd=c(2,2), cex=1)
+
+# Comparação dos 4 modelos com os modelos com benchmarks
+
+dados_teste =  M3[[id]]$xx
+
+f_arima = fit_arima %>% forecast(h=h) %>% accuracy(dados_teste)
+f_arima_boxcox = fit_arima_boxcox %>% forecast(h=h) %>% accuracy(dados_teste)
+f_ets = fit_ets %>% forecast(h=h) %>% accuracy(dados_teste)
+f_ets_boxcox = fit_ets_boxcox %>% forecast(h=h, lambda = lambda) %>% accuracy(dados_teste)
+f_auto_arima = auto.arima(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
+f_ses = ses(serie, h=h)  %>% forecast(h=h) %>% accuracy(dados_teste)
+f_holt = holt(serie, h=h) %>% forecast(h=h) %>% accuracy(dados_teste)
+f_auto_ets = ets(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
+f_stlf = stlf(serie, h=h) %>% forecast(h=h) %>% accuracy(dados_teste)
+f_bats = bats(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
+f_tbats = tbats(serie) %>% forecast(h=h) %>% accuracy(dados_teste)
+
+acuracia <- rbind(f_arima[2,3],
+                  f_arima_boxcox[2,3],
+                  f_ets[2,3],
+                  f_ets_boxcox[2,3],
+                  f_auto_arima[2,3],
+                  f_ses[2,3],
+                  f_holt[2,3],
+                  f_auto_ets[2,3],
+                  f_stlf[2,3],
+                  f_bats[2,3],
+                  f_tbats[2,3])
+
+modelos = c("ARIMA","ARIMA com  Box-Cox","ETS (MMM)",
+            "ETS com  Box-Cox (AAA)","Auto ARIMA","SES",
+            "Holt","Auto ETS","STLF","Bats","Tbats")
+
+resultados = cbind(modelos, round(acuracia,3))
+
+kableExtra::kable(resultados,"latex", booktabs=T,
+                  col.names = c("Modelos", "MAE"),
+                  escape = F,align = "c",
+                  caption = "Comparação do Erro absoluto médio com todos os modelos") %>%
+  kableExtra::kable_styling(position = "center",
+                            latex_options = "HOLD_position") %>% 
+  kableExtra::row_spec(2:11, extra_css = "border-bottom-style: none")
+```
+
