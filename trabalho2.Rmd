@@ -518,7 +518,7 @@ kableExtra::kable(resultados,"latex", booktabs=T,
   kableExtra::row_spec(2:11, extra_css = "border-bottom-style: none")
 ```
 
-O modelo TBATS foi o que apresentou o menor erro absoluto médio no conjunto de dados de teste (`r round(f_tbats[2,3],3)`). O modelo BATS apresentou o segundo menor valor, seguido pelo STLF e ETS, entretanto este último foi avaliado por um modelo sem tendência, ao contrário da modelagem da série original. 
+O modelo TBATS foi o que apresentou o menor erro absoluto médio no conjunto de dados de teste (`r round(f_tbats[2,3],3)`). O modelo BATS apresentou o segundo menor valor, seguido pelo modelo STLF e pela funçaõ automática ETS, que resultou em modelo MNM. 
 .
 ```{r, include = F}
 ets(serie)
@@ -527,7 +527,7 @@ ets(serie)
 
 # Conclusão
 
-A série ID 1686 do banco de dados M3, é uma série que apresenta tendência negativa e sazonalidade. Ela é tornada estacionária com uma diferenciação simples. A modelagem da série por modelos ARIMA e ETS apresenta resultados preditivos semelhantes, com erros absolutos médios próximos para previsões em cinco horizontes. A análise preditiva, utilizando um segundo conjunto de dados de teste, mostrou que os benchmarks TBATS, BATS, STLF e ETS apresentaram os menores erros absolutos médios
+A série ID 1686 do banco de dados M3, é uma série que apresenta tendência negativa e sazonalidade. Ela é tornada estacionária com uma diferenciação simples. A modelagem da série por modelos ARIMA e ETS manalmente selecionados resultou em um modelo $SARIMA(1, 1, 1) \times (1, 0, 1)_{12}$, um modelo utilizando transformação Box-Cox $SARIMA(3, 1, 3) \times (1, 0, 1)_{12}$, um modelo ETS MMM e um modelo, utilizando transformação de Box-Cox, AAA. Todos os modelos estimados apresentam resultados preditivos semelhantes, com erros absolutos médios próximos para previsões em cinco horizontes. A análise preditiva, utilizando um segundo conjunto de dados de teste, mostrou que os benchmarks TBATS, BATS, STLF e ETS apresentaram os menores erros absolutos médios.
 
 
 \newpage
@@ -795,4 +795,5 @@ kableExtra::kable(resultados,"latex", booktabs=T,
                             latex_options = "HOLD_position") %>% 
   kableExtra::row_spec(2:11, extra_css = "border-bottom-style: none")
 ```
+
 
